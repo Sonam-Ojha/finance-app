@@ -14,6 +14,7 @@ use App\Http\Controllers\BadDebtController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
@@ -74,6 +75,19 @@ Route::middleware(['auth'])->group(function () {
     // Reports
     Route::get('report', [ReportController::class, 'index'])->name('report.index');
     Route::post('report/generate', [ReportController::class, 'generate'])->name('report.generate');
+
+    // Settings / Masters
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('settings/expense-category', [SettingsController::class, 'storeExpenseCategory'])->name('settings.expense-category.store');
+    Route::delete('settings/expense-category/{expenseCategory}', [SettingsController::class, 'destroyExpenseCategory'])->name('settings.expense-category.destroy');
+    Route::post('settings/income-category', [SettingsController::class, 'storeIncomeCategory'])->name('settings.income-category.store');
+    Route::delete('settings/income-category/{incomeCategory}', [SettingsController::class, 'destroyIncomeCategory'])->name('settings.income-category.destroy');
+    Route::post('settings/payment-mode', [SettingsController::class, 'storePaymentMode'])->name('settings.payment-mode.store');
+    Route::delete('settings/payment-mode/{paymentMode}', [SettingsController::class, 'destroyPaymentMode'])->name('settings.payment-mode.destroy');
+    Route::post('settings/investment-category', [SettingsController::class, 'storeInvestmentCategory'])->name('settings.investment-category.store');
+    Route::delete('settings/investment-category/{investmentCategory}', [SettingsController::class, 'destroyInvestmentCategory'])->name('settings.investment-category.destroy');
+    Route::post('settings/bank-master', [SettingsController::class, 'storeBankMaster'])->name('settings.bank-master.store');
+    Route::delete('settings/bank-master/{bankMaster}', [SettingsController::class, 'destroyBankMaster'])->name('settings.bank-master.destroy');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
