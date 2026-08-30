@@ -24,44 +24,44 @@ Route::prefix('auth')->group(function () {
 });
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->name('api.')->group(function () {
 
-    Route::post('auth/logout', [AuthController::class, 'logout']);
-    Route::get('auth/me', [AuthController::class, 'me']);
+    Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+    Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
 
-    Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::apiResource('income', IncomeController::class);
     Route::apiResource('expense', ExpenseController::class);
     Route::apiResource('bank', BankAccountController::class);
-    Route::post('bank/{bank}/transaction', [BankAccountController::class, 'storeTransaction']);
+    Route::post('bank/{bank}/transaction', [BankAccountController::class, 'storeTransaction'])->name('bank.transaction.store');
     Route::apiResource('credit-card', CreditCardController::class);
-    Route::post('credit-card/{creditCard}/transaction', [CreditCardController::class, 'storeTransaction']);
+    Route::post('credit-card/{creditCard}/transaction', [CreditCardController::class, 'storeTransaction'])->name('credit-card.transaction.store');
     Route::apiResource('loan', LoanController::class);
-    Route::post('loan/{loan}/payment', [LoanController::class, 'storePayment']);
+    Route::post('loan/{loan}/payment', [LoanController::class, 'storePayment'])->name('loan.payment.store');
     Route::apiResource('investment', InvestmentController::class);
     Route::apiResource('commission', CommissionController::class);
     Route::apiResource('cashback', CashbackController::class);
     Route::apiResource('bad-debt', BadDebtController::class);
     Route::apiResource('contact', ContactController::class);
-    Route::post('contact/{contact}/transaction', [ContactController::class, 'storeTransaction']);
+    Route::post('contact/{contact}/transaction', [ContactController::class, 'storeTransaction'])->name('contact.transaction.store');
     Route::apiResource('reminder', ReminderController::class);
-    Route::patch('reminder/{reminder}/done', [ReminderController::class, 'markDone']);
+    Route::patch('reminder/{reminder}/done', [ReminderController::class, 'markDone'])->name('reminder.done');
 
-    Route::get('report', [ReportController::class, 'index']);
+    Route::get('report', [ReportController::class, 'index'])->name('report');
 
     // Settings / Masters
-    Route::get('settings', [SettingsController::class, 'index']);
-    Route::post('settings/expense-category', [SettingsController::class, 'storeExpenseCategory']);
-    Route::delete('settings/expense-category/{expenseCategory}', [SettingsController::class, 'destroyExpenseCategory']);
-    Route::post('settings/income-category', [SettingsController::class, 'storeIncomeCategory']);
-    Route::delete('settings/income-category/{incomeCategory}', [SettingsController::class, 'destroyIncomeCategory']);
-    Route::post('settings/payment-mode', [SettingsController::class, 'storePaymentMode']);
-    Route::delete('settings/payment-mode/{paymentMode}', [SettingsController::class, 'destroyPaymentMode']);
-    Route::post('settings/investment-category', [SettingsController::class, 'storeInvestmentCategory']);
-    Route::delete('settings/investment-category/{investmentCategory}', [SettingsController::class, 'destroyInvestmentCategory']);
-    Route::post('settings/bank-master', [SettingsController::class, 'storeBankMaster']);
-    Route::delete('settings/bank-master/{bankMaster}', [SettingsController::class, 'destroyBankMaster']);
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('settings/expense-category', [SettingsController::class, 'storeExpenseCategory'])->name('settings.expense-category.store');
+    Route::delete('settings/expense-category/{expenseCategory}', [SettingsController::class, 'destroyExpenseCategory'])->name('settings.expense-category.destroy');
+    Route::post('settings/income-category', [SettingsController::class, 'storeIncomeCategory'])->name('settings.income-category.store');
+    Route::delete('settings/income-category/{incomeCategory}', [SettingsController::class, 'destroyIncomeCategory'])->name('settings.income-category.destroy');
+    Route::post('settings/payment-mode', [SettingsController::class, 'storePaymentMode'])->name('settings.payment-mode.store');
+    Route::delete('settings/payment-mode/{paymentMode}', [SettingsController::class, 'destroyPaymentMode'])->name('settings.payment-mode.destroy');
+    Route::post('settings/investment-category', [SettingsController::class, 'storeInvestmentCategory'])->name('settings.investment-category.store');
+    Route::delete('settings/investment-category/{investmentCategory}', [SettingsController::class, 'destroyInvestmentCategory'])->name('settings.investment-category.destroy');
+    Route::post('settings/bank-master', [SettingsController::class, 'storeBankMaster'])->name('settings.bank-master.store');
+    Route::delete('settings/bank-master/{bankMaster}', [SettingsController::class, 'destroyBankMaster'])->name('settings.bank-master.destroy');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
