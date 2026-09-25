@@ -156,28 +156,6 @@ class ReportController extends Controller
         $uid   = $request->user()->id;
         $limit = (int) ($request->query('limit', 8));
 
-        $expenseDays = AppExpense::where('user_id', $uid)
-            ->select('spent_at as day', DB::raw('SUM(amount_minor) as expense_minor'))
-            ->groupBy('spent_at');
-
-        $incomeDays = AppIncome::where('user_id', $uid)
-            ->select('received_at as day', DB::raw('SUM(amount_minor) as income_minor'))
-            ->groupBy('received_at');
-
-        $days = DB::table(DB::raw("(
-            SELECT COALESCE(e.day, i.day) as day,
-                   COALESCE(e.expense_minor, 0) as expense_minor,
-                   COALESCE(i.income_minor, 0) as income_minor
-            FROM ({$expenseDays->toSql()}) e
-            FULL OUTER JOIN ({$incomeDays->toSql()}) i ON e.day = i.day
-        ) as combined"))
-        ->mergeBindings($expenseDays->getQuery())
-        ->mergeBindings($incomeDays->getQuery())
-        ->orderByDesc('day')
-        ->limit($limit)
-        ->get();
-
-        // MySQL doesn't support FULL OUTER JOIN — use UNION approach
         $result = $this->dayFlowUnion($uid, $limit);
 
         return response()->json(['data' => $result]);
