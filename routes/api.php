@@ -98,6 +98,8 @@ Route::prefix('v1')->group(function () {
         Route::post('me/onboarded',  [V1Auth::class, 'markOnboarded']);
         Route::put('me/pin',         [V1Auth::class, 'setPin']);
         Route::delete('me/pin',      [V1Auth::class, 'removePin']);
+        Route::post('me/avatar',     [V1Auth::class, 'uploadAvatar']);
+        Route::delete('me/avatar',   [V1Auth::class, 'removeAvatar']);
 
         // Settings
         Route::put('settings/currency', [V1Settings::class, 'updateCurrency']);

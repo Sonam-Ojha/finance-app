@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -160,6 +161,38 @@ class AuthController extends Controller
         return response()->noContent();
     }
 
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate(['avatar' => 'required|string']);
+
+        $dataUri = $request->avatar;
+        $base64  = str_contains($dataUri, ',') ? substr($dataUri, strpos($dataUri, ',') + 1) : $dataUri;
+
+        $user = $request->user();
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $filename = 'avatars/' . $user->id . '.jpg';
+        Storage::disk('public')->put($filename, base64_decode($base64));
+        $user->update(['avatar' => $filename]);
+
+        return response()->json([
+            'data' => ['avatar_url' => Storage::disk('public')->url($filename)],
+        ]);
+    }
+
+    public function removeAvatar(Request $request)
+    {
+        $user = $request->user();
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+            $user->update(['avatar' => null]);
+        }
+        return response()->noContent();
+    }
+
     private function userPayload(User $user): array
     {
         return [
@@ -170,6 +203,7 @@ class AuthController extends Controller
             'has_pin'    => $user->has_pin,
             'currency'   => $user->currency,
             'theme_mode' => $user->theme_mode,
+            'avatar_url' => $user->avatar ? Storage::disk('public')->url($user->avatar) : null,
         ];
     }
 }
