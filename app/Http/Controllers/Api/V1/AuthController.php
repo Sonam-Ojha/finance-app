@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -170,16 +169,21 @@ class AuthController extends Controller
 
         $user = $request->user();
 
+        $dir = public_path('avatars');
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+        // Delete old file if exists
         if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+            $old = public_path($user->avatar);
+            if (file_exists($old)) unlink($old);
         }
 
         $filename = 'avatars/' . $user->id . '.jpg';
-        Storage::disk('public')->put($filename, base64_decode($base64));
+        file_put_contents(public_path($filename), base64_decode($base64));
         $user->update(['avatar' => $filename]);
 
         return response()->json([
-            'data' => ['avatar_url' => Storage::disk('public')->url($filename)],
+            'data' => ['avatar_url' => url($filename)],
         ]);
     }
 
@@ -187,7 +191,8 @@ class AuthController extends Controller
     {
         $user = $request->user();
         if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+            $path = public_path($user->avatar);
+            if (file_exists($path)) unlink($path);
             $user->update(['avatar' => null]);
         }
         return response()->noContent();
@@ -203,7 +208,7 @@ class AuthController extends Controller
             'has_pin'    => $user->has_pin,
             'currency'   => $user->currency,
             'theme_mode' => $user->theme_mode,
-            'avatar_url' => $user->avatar ? Storage::disk('public')->url($user->avatar) : null,
+            'avatar_url' => $user->avatar ? url($user->avatar) : null,
         ];
     }
 }

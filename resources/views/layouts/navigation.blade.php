@@ -24,7 +24,7 @@
                     <x-slot name="trigger">
                         <button class="inline-flex items-center gap-2 px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             @if(Auth::user()->avatar)
-                                <img src="{{ Storage::disk('public')->url(Auth::user()->avatar) }}"
+                                <img src="{{ url(Auth::user()->avatar) }}"
                                      alt="{{ Auth::user()->name }}"
                                      class="w-8 h-8 rounded-full object-cover">
                             @else
@@ -84,7 +84,7 @@
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4 flex items-center gap-3">
                 @if(Auth::user()->avatar)
-                    <img src="{{ Storage::disk('public')->url(Auth::user()->avatar) }}"
+                    <img src="{{ url(Auth::user()->avatar) }}"
                          alt="{{ Auth::user()->name }}"
                          class="w-10 h-10 rounded-full object-cover">
                 @else
