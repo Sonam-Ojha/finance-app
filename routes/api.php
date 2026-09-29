@@ -100,6 +100,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('me/pin',      [V1Auth::class, 'removePin']);
         Route::post('me/avatar',     [V1Auth::class, 'uploadAvatar']);
         Route::delete('me/avatar',   [V1Auth::class, 'removeAvatar']);
+        Route::delete('me',          [V1Auth::class, 'deleteAccount']);
 
         // Settings
         Route::put('settings/currency', [V1Settings::class, 'updateCurrency']);

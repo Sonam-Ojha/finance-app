@@ -160,6 +160,31 @@ class AuthController extends Controller
         return response()->noContent();
     }
 
+    public function deleteAccount(Request $request)
+    {
+        $request->validate(['password' => 'required'], [
+            'password.required' => 'Enter your password to confirm.',
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Incorrect password.'], 422);
+        }
+
+        // Delete avatar file if exists
+        if ($user->avatar) {
+            $path = public_path($user->avatar);
+            if (file_exists($path)) unlink($path);
+        }
+
+        // Revoke all tokens, then delete user (cascade removes all linked data)
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->noContent();
+    }
+
     public function uploadAvatar(Request $request)
     {
         $request->validate(['avatar' => 'required|string']);
