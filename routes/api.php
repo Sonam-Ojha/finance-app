@@ -77,12 +77,20 @@ use App\Http\Controllers\Api\V1\ReportController as V1Report;
 use App\Http\Controllers\Api\V1\MetaController as V1Meta;
 use App\Http\Controllers\Api\V1\ImportController as V1Import;
 use App\Http\Controllers\Api\V1\PasswordController as V1Password;
+use App\Http\Controllers\Api\V1\SocialAuthController as V1SocialAuth;
+use App\Http\Controllers\Api\V1\TransactionController as V1Transaction;
+use App\Http\Controllers\Api\V1\BudgetController as V1Budget;
+use App\Http\Controllers\Api\V1\UserCurrencyController as V1UserCurrency;
+use App\Http\Controllers\Api\V1\DeviceController as V1Device;
+use App\Http\Controllers\Api\V1\NotificationController as V1Notification;
 
 Route::prefix('v1')->group(function () {
 
     // Public
     Route::post('register', [V1Auth::class, 'register'])->middleware('throttle:10,1');
     Route::post('login',    [V1Auth::class, 'login'])->middleware('throttle:5,1');
+    Route::post('auth/google', [V1SocialAuth::class, 'google'])->middleware('throttle:10,1');
+    Route::post('auth/apple',  [V1SocialAuth::class, 'apple'])->middleware('throttle:10,1');
     Route::post('forgot-password', [V1Password::class, 'forgotPassword'])->middleware('throttle:5,1');
     Route::post('reset-password',  [V1Password::class, 'resetPassword']);
     Route::get('currencies', [V1Settings::class, 'currencies']);
@@ -102,9 +110,30 @@ Route::prefix('v1')->group(function () {
         Route::delete('me/avatar',   [V1Auth::class, 'removeAvatar']);
         Route::delete('me',          [V1Auth::class, 'deleteAccount']);
 
+        // Push notifications: this phone's Firebase token, and the inbox
+        Route::post('me/devices',   [V1Device::class, 'store']);
+        Route::delete('me/devices', [V1Device::class, 'destroy']);
+        Route::get('notifications', [V1Notification::class, 'index']);
+
+        // The user's exchange rates and added currencies
+        Route::get('me/currencies',           [V1UserCurrency::class, 'index']);
+        Route::put('me/currencies/{code}',    [V1UserCurrency::class, 'upsert']);
+        Route::delete('me/currencies/{code}', [V1UserCurrency::class, 'destroy']);
+
         // Settings
         Route::put('settings/currency', [V1Settings::class, 'updateCurrency']);
         Route::put('settings/theme',    [V1Settings::class, 'updateTheme']);
+        Route::put('settings/email-notifications', [V1Settings::class, 'updateEmailNotifications']);
+
+        // Expenses and incomes together: search, filter, sort, paginate
+        Route::get('transactions', [V1Transaction::class, 'index']);
+
+        // Month-by-month budgets
+        Route::get('budgets',             [V1Budget::class, 'index']);
+        Route::post('budgets',            [V1Budget::class, 'store']);
+        Route::get('budgets/{budget}',    [V1Budget::class, 'show'])->whereNumber('budget');
+        Route::put('budgets/{budget}',    [V1Budget::class, 'update'])->whereNumber('budget');
+        Route::delete('budgets/{budget}', [V1Budget::class, 'destroy'])->whereNumber('budget');
 
         // Bootstrap
         Route::get('bootstrap', [V1Bootstrap::class, 'index']);

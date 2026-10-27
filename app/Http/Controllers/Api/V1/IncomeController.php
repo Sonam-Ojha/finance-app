@@ -4,11 +4,26 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppIncome;
+use App\Support\ActivityMail;
+use App\Support\Money;
+use App\Support\PaymentMethods;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class IncomeController extends Controller
 {
+    private function rules(): array
+    {
+        return [
+            'amount_minor'   => 'required|integer|min:1',
+            'source'         => 'required|max:40',
+            'note'           => 'nullable|string|max:120',
+            'payment_method' => ['nullable', Rule::in(PaymentMethods::all())],
+            'received_at'    => 'required|date_format:Y-m-d|before_or_equal:' . now()->addDay()->toDateString(),
+        ];
+    }
+
     public function index(Request $request)
     {
         $request->validate(['month' => ['required', 'regex:/^\d{4}-\d{2}$/']]);
@@ -27,23 +42,29 @@ class IncomeController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'amount_minor' => 'required|integer|min:1',
-            'source'       => 'required|max:40',
-            'note'         => 'nullable|string|max:120',
-            'received_at'  => 'required|date_format:Y-m-d|before_or_equal:' . now()->addDay()->toDateString(),
-        ], [
+        $user = $request->user();
+        $request->validate($this->rules(), [
             'amount_minor.min'    => 'Enter an amount greater than zero.',
             'amount_minor.required' => 'Enter an amount greater than zero.',
             'source.required'     => 'Say where this income came from.',
+            'payment_method.in'   => PaymentMethods::MESSAGE,
         ]);
 
         $income = AppIncome::create([
-            'user_id'      => $request->user()->id,
-            'amount_minor' => $request->amount_minor,
-            'source'       => trim($request->source),
-            'note'         => $request->note ? (trim($request->note) ?: null) : null,
-            'received_at'  => $request->received_at,
+            'user_id'        => $user->id,
+            'amount_minor'   => $request->amount_minor,
+            'source'         => trim($request->source),
+            'note'           => $request->note ? (trim($request->note) ?: null) : null,
+            'payment_method' => $request->payment_method,
+            'received_at'    => $request->received_at,
+        ]);
+
+        ActivityMail::send($user, 'Income added: ' . Money::inr($income->amount_minor), 'You added an income.', [
+            'Amount'        => Money::inr($income->amount_minor),
+            'Source'        => $income->source,
+            'Date'          => $income->received_at->format('j M Y'),
+            'Received into' => PaymentMethods::label($income->payment_method),
+            'Note'          => $income->note,
         ]);
 
         return response()->json(['data' => $income], 201);
@@ -58,22 +79,23 @@ class IncomeController extends Controller
     public function update(Request $request, AppIncome $income)
     {
         $this->authorizeOwner($income, $request->user());
-        $request->validate([
-            'amount_minor' => 'required|integer|min:1',
-            'source'       => 'required|max:40',
-            'note'         => 'nullable|string|max:120',
-            'received_at'  => 'required|date_format:Y-m-d|before_or_equal:' . now()->addDay()->toDateString(),
-        ], [
-            'amount_minor.min' => 'Enter an amount greater than zero.',
-            'source.required'  => 'Say where this income came from.',
+        $request->validate($this->rules(), [
+            'amount_minor.min'  => 'Enter an amount greater than zero.',
+            'source.required'   => 'Say where this income came from.',
+            'payment_method.in' => PaymentMethods::MESSAGE,
         ]);
 
-        $income->update([
+        $changes = [
             'amount_minor' => $request->amount_minor,
             'source'       => trim($request->source),
             'note'         => $request->note ? (trim($request->note) ?: null) : null,
             'received_at'  => $request->received_at,
-        ]);
+        ];
+        // Absent keeps the stored value (older app versions); null clears it.
+        if ($request->has('payment_method')) {
+            $changes['payment_method'] = $request->payment_method;
+        }
+        $income->update($changes);
 
         return response()->json(['data' => $income->fresh()]);
     }

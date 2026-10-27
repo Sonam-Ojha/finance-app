@@ -8,7 +8,7 @@ class AppExpense extends Model
 {
     protected $table = 'app_expenses';
 
-    protected $fillable = ['user_id', 'amount_minor', 'category_id', 'note', 'spent_at'];
+    protected $fillable = ['user_id', 'amount_minor', 'category_id', 'note', 'payment_method', 'spent_at'];
 
     protected $casts = ['amount_minor' => 'integer', 'spent_at' => 'date'];
 

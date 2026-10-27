@@ -1,0 +1,29 @@
+{{-- Laravel's mail layout with the app's own name in the header and footer:
+     the stock message uses APP_NAME, which belongs to the whole server. --}}
+<x-mail::layout>
+<x-slot:header>
+<x-mail::header :url="config('app.url')">
+Expense Tracker
+</x-mail::header>
+</x-slot:header>
+
+**{{ $greeting }}**
+
+{{ $headline }}
+
+@foreach ($details as $label => $value)
+**{{ $label }}:** {{ $value }}
+
+@endforeach
+<x-slot:subcopy>
+<x-mail::subcopy>
+You are getting this because email notifications are on for your Expense Tracker account.
+</x-mail::subcopy>
+</x-slot:subcopy>
+
+<x-slot:footer>
+<x-mail::footer>
+© {{ date('Y') }} Expense Tracker
+</x-mail::footer>
+</x-slot:footer>
+</x-mail::layout>

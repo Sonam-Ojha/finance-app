@@ -1579,4 +1579,133 @@ Import already completed.
 
 ---
 
+## API v1 — October 2026 additions
+
+All under `/api/v1`, with the same envelope, error shape and integer `amount_minor` (hundredths of a rupee) as the rest of v1. Tests: `tests/Feature/Api/V1`.
+
+**Deploying** (on the server, in the project folder):
+
+1. Back up the database. The migrations below add tables and columns, make `users.password` nullable and widen `users.currency` to 5 characters.
+2. `git pull`
+3. `composer install --no-dev --optimize-autoloader` (adds `firebase/php-jwt`)
+4. `npm ci && npm run build`, so that the admin pages' new styles are compiled.
+5. `php artisan migrate --force` (five migrations dated `2026_10_27`)
+6. In `.env`:
+   - `MAIL_*` for a real SMTP server
+   - `GOOGLE_CLIENT_IDS` (the web client ID), and `APPLE_CLIENT_IDS` if Apple sign-in is wanted
+   - see `.env.example`
+7. Put the Firebase service-account key at `storage/app/firebase-credentials.json`. It is never committed. Without it, admin messages still reach the app's Notifications screen, but no phone gets a push.
+8. `php artisan config:cache`
+9. `php artisan user:admin you@example.com` to make the first admin. After that, admins promote others from **Admin → Users**.
+
+### Payment method on expenses and incomes
+
+- Optional `payment_method` on `POST`/`PUT` `/expenses` and `/incomes`. Allowed: `cash`, `upi`, `credit_card`, `debit_card`, `bank_transfer`, `other`. Anything else → 422 `"Pick a payment method from the list."`
+- Returned in every expense and income shape, including `/dashboard` and `/transactions`. `null` means "not recorded".
+- **PUT without the key keeps the stored value** (older app versions). `"payment_method": null` clears it.
+
+### GET `/transactions` 🔒
+
+Expenses and incomes in one list, searched, filtered, sorted and paged in SQL. Every parameter is optional.
+
+| Param | Meaning |
+|---|---|
+| `search` | Case-insensitive substring of category name / income source, note, or payment method |
+| `type` | `expense` or `income` |
+| `category_id` | One of the user's categories (else 422); implies expenses only |
+| `payment_method` | One of the values above |
+| `date_from`, `date_to` | `Y-m-d`, both inclusive; `date_to` before `date_from` → 422 |
+| `min_amount_minor`, `max_amount_minor` | Inclusive |
+| `sort` | `newest` (default: date, id desc) · `oldest` · `highest` · `lowest` (amount, then date desc, id desc) |
+| `page`, `per_page` | `per_page` default 50, max 100 |
+
+```json
+{ "data": [ { "type": "expense", "id": 10, "amount_minor": 45000, "date": "2026-09-27", "note": "Auto",
+              "payment_method": "upi", "category_id": 3, "category_name": "Transport", "category_icon": "🚗",
+              "category_color": "#38BDF8", "source": null } ],
+  "meta": { "current_page": 1, "per_page": 50, "total": 1, "last_page": 1 } }
+```
+`type` + `id` identify a row; the two tables share ids.
+
+### Month-by-month budgets 🔒
+
+A budget belongs to one month: the whole month's spending (`category_id: null`), or one category's. A category budget overrides that category's standing `budget_minor` for that month only.
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/budgets?month=YYYY-MM` | | `200` that month's budgets, `[]` if none |
+| POST | `/budgets` | `{ "month": "2026-09", "category_id": 3 \| null, "amount_minor": 500000 }` | `201`; duplicate → 422 `"This month already has that budget."` |
+| GET | `/budgets/{id}` | | `200`; another user's → 404 |
+| PUT | `/budgets/{id}` | `{ "amount_minor": 600000 }` | `200` |
+| DELETE | `/budgets/{id}` | | `204` |
+
+```json
+{ "id": 7, "category_id": 3, "month": "2026-09", "amount_minor": 500000,
+  "spent_minor": 312000, "remaining_minor": 188000, "percent_used": 62.4, "is_over": false }
+```
+`spent_minor` is summed from the expenses on every read, never stored. Deleting a category deletes its budgets.
+
+### Date of birth, and the user object 🔒
+
+- `PATCH /me/profile` accepts an optional `birthday` (`Y-m-d`). Absent keeps it; `null` clears it. The person must be 1 to 120 years old, with a day of slack, else 422 `"Choose a real date of birth."`
+- Every user object (`/register`, `/login`, `/me`, `/bootstrap`, `/auth/*`, `PATCH /me/profile`) now has the same keys: `id, name, email, onboarded, has_pin, has_password, currency, theme_mode, avatar_url, birthday, email_notifications`.
+
+### Exchange rates and added currencies 🔒
+
+Amounts are always stored in INR. A rate (rupees for one unit) only tells the app how to display them.
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/me/currencies` | | `200 [{ "code": "THB", "label": "Thai Baht", "symbol": "฿", "rate": 2.31 }]` |
+| PUT | `/me/currencies/{code}` | `{ "rate": 2.31, "label": "Thai Baht", "symbol": "฿" }` | `200`: creates or updates |
+| DELETE | `/me/currencies/{code}` | | `204` |
+
+- `code`: 2–5 capital letters, not `INR`. `rate`: > 0, at most 9 digits before the point and 6 after.
+- A built-in code (`USD`, `EUR`…) stores only its rate; `label`/`symbol` come back `null`. Any other code needs `label` (max 30) and `symbol` (max 4).
+- `PUT /settings/currency` now also accepts a code the user added. Deleting the selected added currency resets the user to `INR`.
+- `GET /bootstrap` includes the same list as `currencies`.
+
+### Sign in with Google / Apple
+
+| Method | Path | Body |
+|---|---|---|
+| POST | `/auth/google` | `{ "id_token": "<Google ID token>" }` |
+| POST | `/auth/apple` | `{ "identity_token": "<Apple identity token>", "name": "Rishi" }` (Apple sends the name to the app on the first sign-in only) |
+
+- The server checks the token's signature against Google's / Apple's published keys. It also checks the issuer, that the audience is one of `GOOGLE_CLIENT_IDS` / `APPLE_CLIENT_IDS`, and the expiry.
+- Answers like `/login`: `{ "data": { "token", "user", "created" } }`. `201` when a new account was made (with the 8 default categories), `200` otherwise.
+- An existing account with the same **verified** email is linked, not duplicated.
+- Errors: `401` bad token · `422` no verified email · `503` that sign-in has no client IDs configured.
+- These accounts have no password (`has_password: false`):
+  - `POST /login` answers `"This account signs in with Google or Apple."`
+  - `PUT /me/password` sets a first password without `current_password`.
+  - `DELETE /me` needs no password.
+
+### Activity emails
+
+- Adding an expense, an income, a category, a budget or a currency, or changing the display currency, emails the user. Edits and deletes do not.
+- The email is sent after the response, so a slow or failing SMTP server never affects the request, and no queue worker is needed.
+- Template: `resources/views/mail/activity.blade.php`.
+- Off for everyone with `MAIL_ACTIVITY_NOTIFICATIONS=false`, or for one user with `PUT /settings/email-notifications { "enabled": false }` 🔒.
+
+### Account deletion
+
+`DELETE /me` now deletes the user's rows explicitly, children first, in one transaction: budgets, expenses, incomes, currencies, categories, tokens, user. It no longer relies on the order MySQL runs the foreign-key cascades in.
+
+### Push notifications 🔒
+
+- `POST /me/devices { "token": "<FCM token>", "platform": "android" }` → 204. The app sends this after signing in. A token belongs to whoever registered it last, so a shared phone follows the account that is signed in.
+- `DELETE /me/devices { "token": "…" }` → 204. The app sends this when signing out. It only removes the caller's own tokens.
+- `GET /notifications` → `{ "data": [{ "id", "title", "body", "sent_at" }] }`. This is the app's inbox: messages sent to everyone since the user joined, plus messages sent to this user. Newest first, at most 50.
+- Pushes go out through FCM HTTP v1 (`App\Support\Fcm`), on the Android channel `default`. Tokens that FCM reports as dead are deleted.
+
+### Admin panel (website)
+
+- `users.role` is `user` or `admin`. Only admins see the **Admin** section in the sidebar.
+- **Admin → Users:** find people by name or email, and make or remove admins. An admin cannot demote themselves, and the last admin cannot be removed.
+- **Admin → Send Notification:** sends a title (max 100) and a message (max 500) to all users or to one user by email. Each send is listed with its delivery count. *Inbox only* means Firebase was not configured, so the message reached only the app's inbox.
+- Command line: `php artisan user:admin {email}` makes an admin, and `--remove` takes it back.
+
+---
+
 *🔒 = Requires `Authorization: Bearer <token>` header*

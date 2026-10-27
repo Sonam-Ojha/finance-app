@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Support\ApiUser;
 use Illuminate\Http\Request;
 
 class BootstrapController extends Controller
@@ -15,16 +16,10 @@ class BootstrapController extends Controller
             ->orderBy('sort_order')->orderBy('name')->get();
 
         return response()->json(['data' => [
-            'user' => [
-                'id'         => $user->id,
-                'name'       => $user->name ?? '',
-                'email'      => $user->email,
-                'onboarded'  => (bool) $user->onboarded,
-                'has_pin'    => $user->has_pin,
-                'currency'   => $user->currency,
-                'theme_mode' => $user->theme_mode,
-            ],
+            'user'       => ApiUser::payload($user),
             'categories' => $categories,
+            // The user's rates and added currencies, as GET /me/currencies.
+            'currencies' => $user->userCurrencies()->orderBy('id')->get()->map->toApiShape(),
         ]]);
     }
 }

@@ -35,4 +35,29 @@ return [
         ],
     ],
 
+    /*
+    | Sign in with Google / Apple. Each is a comma-separated list of the
+    | client IDs whose tokens this server accepts: for Google, the OAuth
+    | client IDs of the Android, iOS and web apps; for Apple, the iOS bundle
+    | ID and any Services ID used on the web. Empty turns that sign-in off.
+    */
+
+    'google' => [
+        'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
+    ],
+
+    'apple' => [
+        'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('APPLE_CLIENT_IDS', ''))))),
+    ],
+
+    /*
+    | Push notifications (App\Support\Fcm): the Firebase service-account key,
+    | from Firebase console › Project settings › Service accounts › Generate
+    | new private key. A secret — keep it out of git (storage/app is ignored).
+    */
+
+    'firebase' => [
+        'credentials' => env('FIREBASE_CREDENTIALS', storage_path('app/firebase-credentials.json')),
+    ],
+
 ];

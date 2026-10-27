@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Support\ActivityMail;
+use App\Support\Money;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +51,11 @@ class CategoryController extends Controller
             }
             throw $e;
         }
+
+        ActivityMail::send($request->user(), 'New category: ' . $category->name, 'You added a category.', [
+            'Category'       => trim("{$category->icon} {$category->name}"),
+            'Monthly budget' => $category->budget_minor ? Money::inr($category->budget_minor) : null,
+        ]);
 
         return response()->json(['data' => $category], 201);
     }

@@ -3,25 +3,22 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppExpense;
+use App\Models\AppIncome;
+use App\Models\Budget;
 use App\Models\Category;
 use App\Models\User;
+use App\Models\UserCurrency;
+use App\Support\ApiUser;
+use App\Support\DefaultCategories;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    private const DEFAULT_CATEGORIES = [
-        ['name' => 'Food & Drink',      'icon' => '🍔', 'color' => '#FF6B6B'],
-        ['name' => 'Groceries',         'icon' => '🛒', 'color' => '#2DD4BF'],
-        ['name' => 'Transport',         'icon' => '🚗', 'color' => '#38BDF8'],
-        ['name' => 'Shopping',          'icon' => '🛍', 'color' => '#A78BFA'],
-        ['name' => 'Bills & Utilities', 'icon' => '💡', 'color' => '#FBBF24'],
-        ['name' => 'Health',            'icon' => '💊', 'color' => '#34D399'],
-        ['name' => 'Entertainment',     'icon' => '🎬', 'color' => '#F472B6'],
-        ['name' => 'Other',             'icon' => '✨', 'color' => '#94A3B8'],
-    ];
-
     public function register(Request $request)
     {
         $request->validate([
@@ -47,15 +44,7 @@ class AuthController extends Controller
             'theme_mode'=> 'light',
         ]);
 
-        foreach (self::DEFAULT_CATEGORIES as $i => $cat) {
-            Category::create([
-                'user_id'    => $user->id,
-                'name'       => $cat['name'],
-                'icon'       => $cat['icon'],
-                'color'      => $cat['color'],
-                'sort_order' => $i,
-            ]);
-        }
+        DefaultCategories::seed($user);
 
         return response()->json([
             'data' => [
@@ -77,6 +66,10 @@ class AuthController extends Controller
 
         if (! $user) {
             throw ValidationException::withMessages(['email' => ['No account uses that email.']]);
+        }
+
+        if (! $user->has_password) {
+            throw ValidationException::withMessages(['email' => ['This account signs in with Google or Apple.']]);
         }
 
         if (! Hash::check($request->password, $user->password)) {
@@ -104,15 +97,18 @@ class AuthController extends Controller
 
     public function updatePassword(Request $request)
     {
+        // An account made with Google or Apple has no current password; this
+        // is how it gets its first one.
+        $hasPassword = $request->user()->has_password;
         $request->validate([
-            'current_password' => 'required',
+            'current_password' => $hasPassword ? 'required' : 'nullable',
             'new_password'     => ['required', 'min:8', 'regex:/[a-zA-Z]/', 'regex:/\d/'],
         ], [
             'new_password.min'   => 'Use at least 8 characters.',
             'new_password.regex' => 'Include at least one letter and one number.',
         ]);
 
-        if (! Hash::check($request->current_password, $request->user()->password)) {
+        if ($hasPassword && ! Hash::check($request->current_password, $request->user()->password)) {
             throw ValidationException::withMessages(['current_password' => ['Your current password is not right.']]);
         }
 
@@ -125,16 +121,29 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $request->validate([
-            'name'  => 'sometimes|max:40',
-            'email' => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            'name'     => 'sometimes|max:40',
+            'email'    => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            // bail: the age check below only makes sense for a well-formed date.
+            'birthday' => ['bail', 'sometimes', 'nullable', 'date_format:Y-m-d', function ($attr, $value, $fail) {
+                // At least 1 and at most 120 years old, as the app checks. A
+                // day of slack either way: the app judges by the user's own
+                // date, which can be a day off the server's.
+                $born = Carbon::createFromFormat('!Y-m-d', $value);
+                if ($born->gt(now()->addDay()->subYear()) || $born->lte(now()->subDay()->subYears(121))) {
+                    $fail('Choose a real date of birth.');
+                }
+            }],
         ], [
-            'email.email'  => 'Enter a valid email address.',
-            'email.unique' => 'An account with that email already exists.',
+            'email.email'          => 'Enter a valid email address.',
+            'email.unique'         => 'An account with that email already exists.',
+            'birthday.date_format' => 'Choose a real date of birth.',
         ]);
 
         $data = [];
         if ($request->has('name'))  $data['name']  = trim($request->name ?? '');
         if ($request->has('email')) $data['email'] = strtolower(trim($request->email));
+        // Absent keeps it — older app versions send only name and email.
+        if ($request->has('birthday')) $data['birthday'] = $request->birthday;
 
         $user->update($data);
 
@@ -162,25 +171,39 @@ class AuthController extends Controller
 
     public function deleteAccount(Request $request)
     {
-        $request->validate(['password' => 'required'], [
-            'password.required' => 'Enter your password to confirm.',
-        ]);
-
         $user = $request->user();
 
-        if (! Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Incorrect password.'], 422);
+        // An account made with Google or Apple has no password to confirm
+        // with; the signed-in token is the proof there.
+        if ($user->has_password) {
+            $request->validate(['password' => 'required'], [
+                'password.required' => 'Enter your password to confirm.',
+            ]);
+
+            if (! Hash::check($request->password, $user->password)) {
+                return response()->json(['message' => 'Incorrect password.'], 422);
+            }
         }
 
-        // Delete avatar file if exists
+        // Children first, explicitly. Left to the foreign keys, MySQL can try
+        // to delete a category before the expenses that restrict it (error
+        // 1451), depending on the order it runs the cascades in.
+        DB::transaction(function () use ($user) {
+            Budget::where('user_id', $user->id)->delete();
+            AppExpense::where('user_id', $user->id)->delete();
+            AppIncome::where('user_id', $user->id)->delete();
+            UserCurrency::where('user_id', $user->id)->delete();
+            Category::where('user_id', $user->id)->delete();
+            $user->tokens()->delete();
+            // The older web app's tables still cascade from here.
+            $user->delete();
+        });
+
+        // Only once the rows are gone, so a failed delete keeps the photo.
         if ($user->avatar) {
             $path = public_path($user->avatar);
             if (file_exists($path)) unlink($path);
         }
-
-        // Revoke all tokens, then delete user (cascade removes all linked data)
-        $user->tokens()->delete();
-        $user->delete();
 
         return response()->noContent();
     }
@@ -225,15 +248,6 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
-        return [
-            'id'         => $user->id,
-            'name'       => $user->name ?? '',
-            'email'      => $user->email,
-            'onboarded'  => (bool) $user->onboarded,
-            'has_pin'    => $user->has_pin,
-            'currency'   => $user->currency,
-            'theme_mode' => $user->theme_mode,
-            'avatar_url' => $user->avatar ? url($user->avatar) : null,
-        ];
+        return ApiUser::payload($user);
     }
 }

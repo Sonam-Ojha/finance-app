@@ -8,7 +8,7 @@ class AppIncome extends Model
 {
     protected $table = 'app_incomes';
 
-    protected $fillable = ['user_id', 'amount_minor', 'source', 'note', 'received_at'];
+    protected $fillable = ['user_id', 'amount_minor', 'source', 'note', 'payment_method', 'received_at'];
 
     protected $casts = ['amount_minor' => 'integer', 'received_at' => 'date'];
 

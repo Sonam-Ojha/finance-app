@@ -67,6 +67,10 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Times are stored in `timezone`; pages that show a clock time to people
+    // (the admin notification history) convert to this one first.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Kolkata'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

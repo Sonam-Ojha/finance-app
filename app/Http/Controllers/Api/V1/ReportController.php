@@ -212,6 +212,7 @@ class ReportController extends Controller
             ->map(fn($e) => [
                 'id' => $e->id, 'amount_minor' => $e->amount_minor,
                 'category_id' => $e->category_id, 'note' => $e->note,
+                'payment_method' => $e->payment_method,
                 'spent_at' => $e->spent_at->toDateString(),
                 'category_name' => $e->category->name,
                 'category_icon' => $e->category->icon,

@@ -113,4 +113,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Activity Emails
+    |--------------------------------------------------------------------------
+    |
+    | The app's "you added an expense" emails (App\Support\ActivityMail). A
+    | switch for the whole server; each user can also turn them off.
+    |
+    */
+
+    'activity_notifications' => (bool) env('MAIL_ACTIVITY_NOTIFICATIONS', true),
+
 ];
