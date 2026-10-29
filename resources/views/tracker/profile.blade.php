@@ -5,7 +5,7 @@
         {{-- Photo: saved as soon as it is picked --}}
         <div class="card flex items-center gap-4" x-data="{ busy: false, failed: false }">
             @if($avatarUrl)
-                <img src="{{ $avatarUrl }}?v={{ $user->updated_at?->timestamp }}" alt="Your photo" class="w-20 h-20 rounded-full object-cover">
+                <img src="{{ $avatarUrl }}" alt="Your photo" class="w-20 h-20 rounded-full object-cover">
             @else
                 <span class="w-20 h-20 rounded-full bg-surface-page dark:bg-night-line flex items-center justify-center muted"><x-icon name="user" class="w-9 h-9" /></span>
             @endif

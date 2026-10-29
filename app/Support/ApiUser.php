@@ -18,7 +18,7 @@ class ApiUser
             'has_password'        => $user->has_password,
             'currency'            => $user->currency,
             'theme_mode'          => $user->theme_mode,
-            'avatar_url'          => $user->avatar ? url($user->avatar) : null,
+            'avatar_url'          => Accounts::avatarUrl($user),
             'birthday'            => $user->birthday?->toDateString(),
             'email_notifications' => (bool) ($user->email_notifications ?? true),
         ];

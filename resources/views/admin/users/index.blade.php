@@ -39,8 +39,13 @@
                     @forelse($users as $user)
                         <tr>
                             <td class="adm-td">
-                                <p class="font-semibold">{{ $user->name ?: '—' }} <span class="font-mono text-[13px] font-normal text-ink-muted">#{{ $user->id }}</span></p>
-                                <p class="adm-caption">{{ $user->email }}</p>
+                                <div class="flex items-center gap-3">
+                                    <x-admin.avatar :user="$user" />
+                                    <div class="min-w-0">
+                                        <p class="font-semibold">{{ $user->name ?: '—' }} <span class="font-mono text-[13px] font-normal text-ink-muted">#{{ $user->id }}</span></p>
+                                        <p class="adm-caption">{{ $user->email }}</p>
+                                    </div>
+                                </div>
                             </td>
                             <td class="adm-td">
                                 @if($user->isAdmin())

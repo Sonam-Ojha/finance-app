@@ -14,10 +14,7 @@
     $theme = $admin ? 'light' : ($user->theme_mode ?: 'light');
     [, $sidebar, $eyebrow] = \App\Support\SidebarColors::for($user);
     $avatarUrl = \App\Support\Accounts::avatarUrl($user);
-    $words = preg_split('/\s+/', trim($user->name ?? ''), -1, PREG_SPLIT_NO_EMPTY);
-    $initials = count($words) > 1
-        ? mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr(end($words), 0, 1))
-        : mb_strtoupper(mb_substr($words[0] ?? ($user->email ?? '?'), 0, 2));
+    $initials = \App\Support\Accounts::initials($user);
     $section = $admin ? 'Admin panel' : 'My account';
     $pageTitle = $title ?? 'Home';
 
@@ -266,6 +263,23 @@
         @endforeach
     </nav>
 @endif
+
+{{-- ══════════ PHOTO VIEWER: $dispatch('open-photo', { src, name }) (see components/admin/avatar) ══════════ --}}
+<div x-data="{ photo: null, opener: null, close() { this.photo = null; this.opener?.focus(); } }"
+     @open-photo.window="opener = document.activeElement; photo = $event.detail; $nextTick(() => $refs.close.focus())"
+     @keydown.escape.window="photo && close()">
+    <div x-show="photo" x-cloak x-transition.opacity class="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4" @click.self="close()"
+         role="dialog" aria-modal="true" :aria-label="photo ? 'Photo of ' + photo.name : ''">
+        <figure class="relative">
+            <img :src="photo?.src" :alt="photo ? 'Photo of ' + photo.name : ''" class="h-[min(80vw,360px)] w-[min(80vw,360px)] rounded-card bg-white object-cover">
+            <figcaption class="mt-3 text-center text-sm font-semibold text-white" x-text="photo?.name"></figcaption>
+            <button type="button" x-ref="close" @click="close()" aria-label="Close photo"
+                    class="absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink hover:bg-surface-page">
+                <x-icon name="x" />
+            </button>
+        </figure>
+    </div>
+</div>
 
 {{-- ══════════ CONFIRM DIALOG (see resources/js/app.js) ══════════ --}}
 <div x-data="confirmDialog" @confirm-submit.window="ask($event.detail)" @keydown.escape.window="open = false">

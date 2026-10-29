@@ -144,8 +144,13 @@
                         @forelse($recent as $u)
                             <tr>
                                 <td class="adm-td">
-                                    <p class="font-semibold">{{ $u['name'] }}</p>
-                                    <p class="adm-caption">{{ $u['masked'] }}</p>
+                                    <div class="flex items-center gap-3">
+                                        <x-admin.avatar :user="$u['user']" size="h-9 w-9" />
+                                        <div class="min-w-0">
+                                            <p class="font-semibold">{{ $u['name'] }}</p>
+                                            <p class="adm-caption">{{ $u['masked'] }}</p>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="adm-td">{{ $u['platform'] }}</td>
                                 <td class="adm-td whitespace-nowrap">{{ $u['joined'] }}</td>

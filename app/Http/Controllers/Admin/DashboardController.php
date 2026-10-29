@@ -193,7 +193,7 @@ class DashboardController extends Controller
     /** The five newest accounts — who, from where, and whether they have confirmed their email. */
     private function recentSignUps(): array
     {
-        $users = User::latest('created_at')->latest('id')->limit(5)->get(['id', 'name', 'email', 'email_verified_at', 'created_at']);
+        $users = User::latest('created_at')->latest('id')->limit(5)->get(['id', 'name', 'email', 'avatar', 'email_verified_at', 'created_at']);
         $platforms = DB::table('device_tokens as d')
             ->joinSub(DB::table('device_tokens')->selectRaw('user_id, MAX(id) as id')->whereIn('user_id', $users->pluck('id'))->groupBy('user_id'), 'l', 'l.id', '=', 'd.id')
             ->pluck('d.platform', 'd.user_id');
@@ -206,6 +206,7 @@ class DashboardController extends Controller
             'platform' => self::PLATFORMS[$platforms[$u->id] ?? 'web'] ?? 'Web app',
             'joined'   => self::when($u->created_at, true),
             'verified' => $u->email_verified_at !== null,
+            'user'     => $u, // for the photo (components/admin/avatar)
         ])->all();
     }
 

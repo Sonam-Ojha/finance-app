@@ -5,9 +5,11 @@ namespace Tests\Feature\Admin;
 use App\Models\AdminNotification;
 use App\Models\DeviceToken;
 use App\Models\User;
+use App\Notifications\AdminAnnouncement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class SendNotificationTest extends TestCase
@@ -77,7 +79,7 @@ class SendNotificationTest extends TestCase
         $this->device($bob, 'dead-token');
 
         $this->actingAs($this->admin)->post('/admin/notifications', [
-            'title' => 'New feature', 'body' => 'Monthly budgets are here.', 'audience' => 'all',
+            'title' => 'New feature', 'body' => 'Monthly budgets are here.', 'audience' => 'all', 'channels' => ['push'],
         ])->assertRedirect('/admin/notifications')->assertSessionHas('error');
 
         $sent = AdminNotification::firstOrFail();
@@ -103,7 +105,7 @@ class SendNotificationTest extends TestCase
         $this->device($bob, 'bob-phone');
 
         $this->actingAs($this->admin)->post('/admin/notifications', [
-            'title' => 'Hi Alice', 'body' => 'Just for you.', 'audience' => 'user', 'email' => 'ALICE@example.com',
+            'title' => 'Hi Alice', 'body' => 'Just for you.', 'audience' => 'user', 'channels' => ['push'], 'email' => 'ALICE@example.com',
         ])->assertSessionHas('success');
 
         $sent = AdminNotification::firstOrFail();
@@ -114,11 +116,11 @@ class SendNotificationTest extends TestCase
 
     public function test_bad_input_is_refused(): void
     {
-        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => '', 'body' => 'x', 'audience' => 'all'])
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => '', 'body' => 'x', 'audience' => 'all', 'channels' => ['push']])
             ->assertSessionHasErrors('title');
-        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'x', 'audience' => 'user'])
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'x', 'audience' => 'user', 'channels' => ['push']])
             ->assertSessionHasErrors('email');
-        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'x', 'audience' => 'user', 'email' => 'nobody@example.com'])
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'x', 'audience' => 'user', 'channels' => ['push'], 'email' => 'nobody@example.com'])
             ->assertSessionHasErrors('email');
         $this->assertSame(0, AdminNotification::count());
     }
@@ -130,11 +132,85 @@ class SendNotificationTest extends TestCase
         $this->device(User::factory()->create(), 'some-phone');
 
         $this->actingAs($this->admin)->get('/admin/notifications')->assertSee('Push notifications are not set up yet');
-        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'b', 'audience' => 'all'])
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'b', 'audience' => 'all', 'channels' => ['push']])
             ->assertSessionHas('error');
 
         $this->assertSame(AdminNotification::STATUS_NOT_CONFIGURED, AdminNotification::firstOrFail()->status);
         Http::assertNothingSent();
-        $this->actingAs($this->admin)->get('/admin/notifications')->assertSee('Inbox only');
+        $this->actingAs($this->admin)->get('/admin/notifications')->assertSee('Push: inbox only');
+    }
+
+    public function test_it_emails_everyone_who_keeps_emails_on(): void
+    {
+        Notification::fake();
+        Http::fake();
+        $alice = User::factory()->create();
+        $bob   = User::factory()->create(['email_notifications' => false]);
+        $this->device($alice, 'alice-phone');
+
+        $this->actingAs($this->admin)->post('/admin/notifications', [
+            'title' => 'Budgets are here', 'body' => "Set one per category.
+Try it today.", 'audience' => 'all', 'channels' => ['email'],
+        ])->assertSessionHas('success', 'Sent to all users. Emailing 2 users.');
+
+        Notification::assertSentTo($alice, AdminAnnouncement::class, function (AdminAnnouncement $mail) use ($alice) {
+            $message = $mail->toMail($alice);
+            return $message->subject === 'Budgets are here' && $message->viewData['body'] === "Set one per category.
+Try it today.";
+        });
+        Notification::assertSentTo($this->admin, AdminAnnouncement::class);
+        Notification::assertNotSentTo($bob, AdminAnnouncement::class);
+        Http::assertNothingSent(); // email only: no push
+
+        $sent = AdminNotification::firstOrFail();
+        $this->assertSame([false, true, 0, 2, 2, 0], [$sent->via_push, $sent->via_email, $sent->devices, $sent->email_recipients, $sent->emails_sent, $sent->emails_failed]);
+        $this->actingAs($this->admin)->get('/admin/notifications')->assertSee('Email 2/2 sent')->assertDontSee('Push 0/0');
+        // Still in the app's notification list.
+        $this->assertSame(1, AdminNotification::forUser($alice)->count());
+    }
+
+    public function test_push_and_email_together_to_one_user(): void
+    {
+        Notification::fake();
+        $this->configureFirebase();
+        $alice = User::factory()->create(['email' => 'alice@example.com']);
+        $this->device($alice, 'alice-phone');
+
+        $this->actingAs($this->admin)->post('/admin/notifications', [
+            'title' => 'Hi Alice', 'body' => 'Just for you.', 'audience' => 'user', 'email' => 'alice@example.com', 'channels' => ['push', 'email'],
+        ])->assertSessionHas('success', 'Sent to alice@example.com. Push delivered to 1 of 1 device(s). Emailing 1 user.');
+
+        Notification::assertSentTo($alice, AdminAnnouncement::class);
+        Notification::assertNotSentTo($this->admin, AdminAnnouncement::class);
+        $sent = AdminNotification::firstOrFail();
+        $this->assertSame([true, true, 1, 1], [$sent->via_push, $sent->via_email, $sent->delivered, $sent->emails_sent]);
+        $this->actingAs($this->admin)->get('/admin/activity')->assertSee('by push and email');
+    }
+
+    public function test_a_user_who_turned_emails_off_gets_none(): void
+    {
+        Notification::fake();
+        User::factory()->create(['email' => 'quiet@example.com', 'email_notifications' => false]);
+
+        $this->actingAs($this->admin)->post('/admin/notifications', [
+            'title' => 't', 'body' => 'b', 'audience' => 'user', 'email' => 'quiet@example.com', 'channels' => ['email'],
+        ])->assertSessionHas('success', 'Sent to quiet@example.com. quiet@example.com turned emails off, so no email went out.');
+
+        Notification::assertNothingSent();
+        $this->assertSame(0, AdminNotification::firstOrFail()->email_recipients);
+    }
+
+    public function test_it_needs_a_channel_and_shows_the_preview(): void
+    {
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'b', 'audience' => 'all'])
+            ->assertSessionHasErrors(['channels' => 'Pick push, email or both.']);
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 't', 'body' => 'b', 'audience' => 'all', 'channels' => ['sms']])
+            ->assertSessionHasErrors('channels.0');
+        $this->assertSame(0, AdminNotification::count());
+
+        $this->actingAs($this->admin)->get('/admin/notifications')->assertOk()
+            ->assertSee('Preview')
+            ->assertSee('Your message shows here as you type.')
+            ->assertSee('1 user with emails on');
     }
 }

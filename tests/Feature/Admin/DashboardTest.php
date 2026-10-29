@@ -101,7 +101,7 @@ class DashboardTest extends TestCase
             'description' => "made user #{$user->id} an admin",
         ]);
 
-        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 'Budgets are here', 'body' => 'Try them', 'audience' => 'all']);
+        $this->actingAs($this->admin)->post('/admin/notifications', ['title' => 'Budgets are here', 'body' => 'Try them', 'audience' => 'all', 'channels' => ['push']]);
         $this->assertSame(['user.role_changed', 'notification.sent'], AdminActivityLog::orderBy('id')->pluck('action')->all());
 
         $this->actingAs($this->admin)->get('/admin')->assertSee('made user')->assertSee('sent “Budgets are here” to all users');
