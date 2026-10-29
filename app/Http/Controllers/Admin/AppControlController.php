@@ -25,8 +25,6 @@ class AppControlController extends Controller
             'latestVersion'      => AppControl::latestVersion(),
             'updateMessage'      => AppControl::updateMessage(),
             'emailRequired'      => AppControl::emailVerificationRequired(),
-            'emailSetHere'       => AppControl::emailVerificationSetHere(),
-            'emailEnvDefault'    => (bool) config('services.email_check.required_for_api'),
             'status'             => AppControl::status(),
             'reminderAt'         => AppControl::dailyReminderAt(),
             'savedReminderAt'    => AppSettings::get(AppControl::DAILY_REMINDER_AT, AppControl::DEFAULT_REMINDER_AT),

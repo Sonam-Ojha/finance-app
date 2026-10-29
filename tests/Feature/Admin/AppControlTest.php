@@ -46,7 +46,7 @@ class AppControlTest extends TestCase
 
         $this->actingAs($this->admin)->get('/admin/app-control')->assertOk()
             ->assertSee('Maintenance mode')
-            ->assertSee('App versions')
+            ->assertSee('App updates')
             ->assertSee('Require a verified email in the app')
             ->assertSee('/api/v1/app-status');
     }
@@ -188,7 +188,7 @@ class AppControlTest extends TestCase
         $this->assertFalse(AppControl::emailVerificationSetHere());
         Sanctum::actingAs($unverified);
         $this->getJson('/api/v1/categories')->assertForbidden();
-        $this->actingAs($this->admin)->get('/admin/app-control')->assertSee('following the server setting');
+        $this->actingAs($this->admin)->get('/admin/app-control')->assertOk()->assertSee('Require a verified email in the app');
 
         $this->assertSame(3, AdminActivityLog::where('action', 'app.email_verification')->count());
         $this->actingAs($this->admin)->put('/admin/app-control/email-verification', ['required' => 'maybe'])->assertSessionHasErrors('required');
