@@ -83,6 +83,7 @@ use App\Http\Controllers\Api\V1\BudgetController as V1Budget;
 use App\Http\Controllers\Api\V1\UserCurrencyController as V1UserCurrency;
 use App\Http\Controllers\Api\V1\DeviceController as V1Device;
 use App\Http\Controllers\Api\V1\NotificationController as V1Notification;
+use App\Http\Controllers\Api\V1\EmailVerificationController as V1EmailVerification;
 
 Route::prefix('v1')->group(function () {
 
@@ -95,12 +96,15 @@ Route::prefix('v1')->group(function () {
     Route::post('reset-password',  [V1Password::class, 'resetPassword']);
     Route::get('currencies', [V1Settings::class, 'currencies']);
 
-    // Protected
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected. `email.verified` lets an unverified account reach only what
+    // verifying needs, once services.email_check.required_for_api is on.
+    Route::middleware(['auth:sanctum', 'email.verified'])->group(function () {
 
         // Auth / user
         Route::post('logout',        [V1Auth::class, 'logout']);
         Route::get('me',             [V1Auth::class, 'me']);
+        Route::post('me/email/code',   [V1EmailVerification::class, 'send'])->middleware('throttle:6,1');
+        Route::post('me/email/verify', [V1EmailVerification::class, 'verify'])->middleware('throttle:10,1');
         Route::put('me/password',    [V1Auth::class, 'updatePassword']);
         Route::patch('me/profile',   [V1Auth::class, 'updateProfile']);
         Route::post('me/onboarded',  [V1Auth::class, 'markOnboarded']);

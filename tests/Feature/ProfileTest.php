@@ -32,9 +32,10 @@ class ProfileTest extends TestCase
                 'email' => 'test@example.com',
             ]);
 
+        // A new email goes to the code page to be verified.
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect('/verify-email');
 
         $user->refresh();
 

@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Tracker;
 
 use App\Http\Controllers\Controller;
 use App\Support\Accounts;
+use App\Support\EmailVerification;
+use App\Support\RealEmail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** The app's Account information and Change password screens. Same rules as the API. */
 class AccountController extends Controller
@@ -32,7 +35,7 @@ class AccountController extends Controller
         $request->validate([
             // Blank is allowed (the form trims it to nothing), as in the app.
             'name'     => ['nullable', 'max:40'],
-            'email'    => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email'    => ['bail', 'required', 'email', Rule::unique('users', 'email')->ignore($user->id), RealEmail::rule()],
             // At least 1 and at most 120 years old, as the app checks.
             'birthday' => ['bail', 'nullable', 'date_format:Y-m-d', function ($attr, $value, $fail) {
                 $born = Carbon::createFromFormat('!Y-m-d', $value);
@@ -53,9 +56,20 @@ class AccountController extends Controller
             'email'    => $request->email,
             'birthday' => $request->birthday ?: null,
         ]);
-        // A new address has not been confirmed yet.
-        if ($user->isDirty('email')) $user->email_verified_at = null;
+        $emailChanged = $user->isDirty('email');
         $user->save();
+
+        // A new address has to be proven like the first one was: the code
+        // goes out now, and the code page comes up next.
+        if ($emailChanged) {
+            EmailVerification::reset($user);
+            try {
+                EmailVerification::send($user);
+            } catch (ValidationException) {
+            }
+
+            return redirect()->route('verification.notice');
+        }
 
         return redirect()->route('profile.edit')->with('success', 'Account details saved');
     }

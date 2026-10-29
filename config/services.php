@@ -60,4 +60,16 @@ return [
         'credentials' => env('FIREBASE_CREDENTIALS', storage_path('app/firebase-credentials.json')),
     ],
 
+    /*
+     * Sign-up emails (App\Support\RealEmail, App\Support\EmailVerification).
+     * `dns` refuses domains that cannot receive mail. `required_for_api`
+     * blocks the app's data endpoints until the email is verified: off until
+     * the app build with the code screen is on most phones, since the older
+     * build cannot ask for a code. The website always requires it.
+     */
+    'email_check' => [
+        'dns'              => env('EMAIL_DNS_CHECK', true),
+        'required_for_api' => env('EMAIL_VERIFICATION_REQUIRED_FOR_API', false),
+    ],
+
 ];

@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Support\Accounts;
 use App\Support\ApiUser;
 use App\Support\DefaultCategories;
+use App\Support\EmailVerification;
+use App\Support\RealEmail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,9 +19,9 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'email'    => ['required', 'email', 'unique:users,email', function ($attr, $val, $fail) {
+            'email'    => ['bail', 'required', 'email', 'unique:users,email', function ($attr, $val, $fail) {
                 if (strlen(trim($val)) === 0) $fail('Enter a valid email address.');
-            }],
+            }, RealEmail::rule()],
             'password' => ['required', 'min:8', 'regex:/[a-zA-Z]/', 'regex:/\d/'],
         ], [
             'email.required'    => 'Enter a valid email address.',
@@ -40,6 +42,13 @@ class AuthController extends Controller
         ]);
 
         DefaultCategories::seed($user);
+
+        // The code is on its way while the app shows the screen to type it
+        // in. If the mail server is down, that screen's "Send again" retries.
+        try {
+            EmailVerification::send($user);
+        } catch (ValidationException) {
+        }
 
         return response()->json([
             'data' => [
@@ -117,7 +126,7 @@ class AuthController extends Controller
         $user = $request->user();
         $request->validate([
             'name'     => 'sometimes|max:40',
-            'email'    => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            'email'    => ['bail', 'sometimes', 'email', 'unique:users,email,' . $user->id, RealEmail::rule()],
             // bail: the age check below only makes sense for a well-formed date.
             'birthday' => ['bail', 'sometimes', 'nullable', 'date_format:Y-m-d', function ($attr, $value, $fail) {
                 // At least 1 and at most 120 years old, as the app checks. A
@@ -140,7 +149,17 @@ class AuthController extends Controller
         // Absent keeps it — older app versions send only name and email.
         if ($request->has('birthday')) $data['birthday'] = $request->birthday;
 
+        $emailChanged = isset($data['email']) && $data['email'] !== $user->email;
         $user->update($data);
+
+        // A new address has to be proven like the first one was.
+        if ($emailChanged) {
+            EmailVerification::reset($user);
+            try {
+                EmailVerification::send($user);
+            } catch (ValidationException) {
+            }
+        }
 
         return response()->json(['data' => $this->userPayload($user->fresh())]);
     }

@@ -2,8 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
-use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -36,14 +35,22 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('verify-email', EmailVerificationPromptController::class)
+    // The 6-digit code page (App\Support\EmailVerification). The signed link
+    // route below is Breeze's, kept for links already in inboxes.
+    Route::get('verify-email', [EmailCodeController::class, 'show'])
         ->name('verification.notice');
+    Route::post('verify-email', [EmailCodeController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('verification.code');
+    Route::patch('verify-email/email', [EmailCodeController::class, 'changeEmail'])
+        ->middleware('throttle:6,1')
+        ->name('verification.email');
 
     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
 
-    Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
+    Route::post('email/verification-notification', [EmailCodeController::class, 'resend'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
 

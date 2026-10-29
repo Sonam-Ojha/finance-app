@@ -15,7 +15,7 @@ class AdminNotification extends Model
     public const STATUS_NOT_CONFIGURED = 'not_configured';
 
     protected $fillable = [
-        'sent_by', 'title', 'body', 'audience', 'target_user_id', 'via_push', 'via_email',
+        'sent_by', 'title', 'body', 'audience', 'target_user_id', 'scheduled_notification_id', 'via_push', 'via_email',
         'status', 'devices', 'delivered', 'failed', 'email_recipients', 'emails_sent', 'emails_failed',
     ];
 
@@ -38,6 +38,8 @@ class AdminNotification extends Model
 
     public function sender() { return $this->belongsTo(User::class, 'sent_by'); }
     public function target() { return $this->belongsTo(User::class, 'target_user_id'); }
+    /** Set when the scheduler sent it rather than an admin's click. */
+    public function schedule() { return $this->belongsTo(ScheduledNotification::class, 'scheduled_notification_id'); }
 
     /**
      * What one user's inbox shows: messages sent to them, and messages sent to

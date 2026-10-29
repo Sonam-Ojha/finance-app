@@ -25,7 +25,7 @@ Route::get('/', fn() => redirect()->route('dashboard'));
 /*
  * The expense tracker — the same features, and the same data, as the app.
  */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'email.verified'])->group(function () {
     Route::get('/dashboard', [Tracker\HomeController::class, 'index'])->name('dashboard');
     Route::get('/transactions', [Tracker\TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/analytics', [Tracker\AnalyticsController::class, 'index'])->name('analytics.index');
@@ -80,7 +80,7 @@ Route::middleware(['auth'])->group(function () {
  * off the menu — the website now offers what the app offers — but stay
  * reachable so nothing recorded in them is lost.
  */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'email.verified'])->group(function () {
 
     // Income
     Route::resource('income', IncomeController::class)->except(['show']);
@@ -150,13 +150,15 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Admin — users with role "admin" only
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('activity', [AdminActivityController::class, 'index'])->name('activity.index');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.role');
     Route::get('notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications', [AdminNotificationController::class, 'store'])->name('notifications.store');
+    Route::patch('notifications/scheduled/{scheduled}', [AdminNotificationController::class, 'toggle'])->name('notifications.scheduled.toggle');
+    Route::delete('notifications/scheduled/{scheduled}', [AdminNotificationController::class, 'destroy'])->name('notifications.scheduled.destroy');
     Route::view('settings', 'admin.settings')->name('settings');
 });
 

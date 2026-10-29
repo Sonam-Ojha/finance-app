@@ -13,6 +13,8 @@ class ApiUser
             'id'                  => $user->id,
             'name'                => $user->name ?? '',
             'email'               => $user->email,
+            // False until the 6-digit code is typed back (App\Support\EmailVerification).
+            'email_verified'      => $user->email_verified_at !== null,
             'onboarded'           => (bool) $user->onboarded,
             'has_pin'             => $user->has_pin,
             'has_password'        => $user->has_password,

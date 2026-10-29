@@ -53,10 +53,17 @@ class AccountAndCurrencyTest extends TrackerTestCase
 
     public function test_account_information(): void
     {
+        // A new email has to be verified: the code page comes next.
         $this->patch('/profile', ['name' => 'Asha R', 'email' => ' ASHA@Example.com ', 'birthday' => '1990-07-15'])
-            ->assertSessionHas('success', 'Account details saved');
+            ->assertRedirect('/verify-email');
         $user = $this->user->fresh();
         $this->assertSame(['Asha R', 'asha@example.com', '1990-07-15'], [$user->name, $user->email, $user->birthday->toDateString()]);
+        $this->assertNull($user->email_verified_at);
+        $this->user->forceFill(['email_verified_at' => now()])->save();
+
+        // The same email again just saves.
+        $this->patch('/profile', ['name' => 'Asha Rao', 'email' => 'asha@example.com', 'birthday' => '1990-07-15'])
+            ->assertSessionHas('success', 'Account details saved');
 
         $this->makeUser(['email' => 'taken@example.com']);
         $this->patch('/profile', ['name' => str_repeat('a', 41), 'email' => 'taken@example.com', 'birthday' => now()->toDateString()])
