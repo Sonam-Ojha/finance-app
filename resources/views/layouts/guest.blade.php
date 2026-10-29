@@ -8,7 +8,7 @@
     <title>{{ $title ?? 'Expense Tracker' }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|poppins:600,700&display=swap" rel="stylesheet">
-    <link rel="preload" as="image" type="image/avif" href="/images/login-hero.avif" media="(min-width: 1024px)">
+    <link rel="preload" as="image" type="image/avif" href="/images/login-hero.avif?v=2" media="(min-width: 1024px)">
     @include('partials.pwa')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{--
@@ -167,7 +167,7 @@
 
         <aside class="auth-visual">
             <picture class="visual-photo">
-                <source srcset="/images/login-hero.avif" type="image/avif">
+                <source srcset="/images/login-hero.avif?v=2" type="image/avif">
                 <img src="/images/login-hero.jpg" alt="" width="740" height="493">
             </picture>
 
