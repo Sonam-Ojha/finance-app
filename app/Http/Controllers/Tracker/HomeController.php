@@ -47,7 +47,7 @@ class HomeController extends Controller
             'tiles' => [
                 ['Income', $received, MonthChange::of($received, $previousIncome), true, 'money-in'],
                 ['Expenses', $spent, MonthChange::of($spent, $previousSpent), false, 'money-out'],
-                ['Savings', $saved, MonthChange::of($saved, $previousIncome - $previousSpent), true, 'text-indigo-600 dark:text-indigo-400'],
+                ['Savings', $saved, MonthChange::of($saved, $previousIncome - $previousSpent), true, 'text-brand-navy dark:text-brand-cyan'],
             ],
             'overview' => [
                 'this' => self::weeks($month, $expenses, $incomes, true),

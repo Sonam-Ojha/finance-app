@@ -4,16 +4,16 @@
         $tones = [
             'danger'  => ['warning', 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300'],
             'warning' => ['warning', 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300'],
-            'info'    => ['info', 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300'],
+            'info'    => ['info', 'bg-brand-tint text-brand-navy dark:bg-brand-cyan/15 dark:text-brand-cyan'],
         ];
     @endphp
 
-    <div class="max-w-2xl mx-auto space-y-4">
+    <div class="max-w-2xl space-y-4">
         @if($messages->isNotEmpty())
             <h3 class="section-label">Messages</h3>
             @foreach($messages as $message)
                 <div class="card flex gap-3">
-                    <span class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300 flex items-center justify-center flex-shrink-0">
+                    <span class="w-10 h-10 rounded-full bg-brand-tint text-brand-navy dark:bg-brand-cyan/15 dark:text-brand-cyan flex items-center justify-center flex-shrink-0">
                         <x-icon name="megaphone" />
                     </span>
                     <div class="min-w-0">
@@ -30,7 +30,7 @@
 
         @forelse($alerts as $alert)
             @php [$icon, $tone] = $tones[$alert['tone']]; @endphp
-            <a href="{{ $alert['href'] }}" class="card flex gap-3 hover:shadow-md transition-shadow">
+            <a href="{{ $alert['href'] }}" class="card flex gap-3 transition-shadow hover:ring-2 hover:ring-brand-navy/15 dark:hover:ring-brand-cyan/30">
                 <span class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 {{ $tone }}"><x-icon :name="$icon" /></span>
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold strong">{{ $alert['title'] }}</p>

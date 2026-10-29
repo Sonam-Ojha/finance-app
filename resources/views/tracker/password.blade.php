@@ -1,11 +1,10 @@
 <x-app-layout>
     <x-slot name="title">{{ $hasPassword ? 'Change password' : 'Set a password' }}</x-slot>
 
-    <form method="POST" action="{{ route('account.password.update') }}" class="max-w-2xl mx-auto card space-y-5"
+    <form method="POST" action="{{ route('account.password.update') }}" class="max-w-2xl card space-y-5"
           x-data="{ next: '', again: '' }">
         @csrf @method('PUT')
 
-        <h2 class="page-title">{{ $hasPassword ? 'Change password' : 'Set a password' }}</h2>
 
         @if($hasPassword)
             <div>

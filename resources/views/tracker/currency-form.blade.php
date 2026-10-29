@@ -6,7 +6,7 @@
         $selected = $currency && auth()->user()->currency === $currency->code;
     @endphp
 
-    <div class="max-w-2xl mx-auto space-y-4"
+    <div class="max-w-2xl space-y-4"
          x-data="{
              code: @js(old('code', $currency?->code ?? '')),
              symbol: @js(old('symbol', $currency?->symbol ?? '')),
@@ -23,7 +23,6 @@
             @csrf @method('PUT')
             @if($select)<input type="hidden" name="select" value="1">@endif
 
-            <h2 class="page-title">{{ $currency ? $currency->label : 'Add currency' }}</h2>
 
             @if($custom)
                 <div>

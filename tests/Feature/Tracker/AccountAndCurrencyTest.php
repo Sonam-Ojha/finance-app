@@ -37,6 +37,20 @@ class AccountAndCurrencyTest extends TrackerTestCase
         $this->assertSame(0, $this->user->userCurrencies()->count());
     }
 
+    public function test_the_sidebar_colour(): void
+    {
+        $this->get('/settings/appearance')->assertOk()->assertSee('Sidebar colour')->assertSee('Graphite');
+
+        $this->from('/settings/appearance')->put('/settings/sidebar', ['sidebar_color' => 'teal'])
+            ->assertRedirect('/settings/appearance')
+            ->assertSessionHas('success', 'Sidebar colour set to Teal.');
+        $this->assertSame('teal', $this->user->fresh()->sidebar_color);
+        $this->get('/dashboard')->assertSee('background-color: #115e59', false);
+
+        $this->put('/settings/sidebar', ['sidebar_color' => 'hotpink'])->assertSessionHasErrors('sidebar_color');
+        $this->assertSame('teal', $this->user->fresh()->sidebar_color);
+    }
+
     public function test_account_information(): void
     {
         $this->patch('/profile', ['name' => 'Asha R', 'email' => ' ASHA@Example.com ', 'birthday' => '1990-07-15'])

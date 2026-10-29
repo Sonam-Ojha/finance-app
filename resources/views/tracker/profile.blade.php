@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="title">Account information</x-slot>
 
-    <div class="max-w-2xl mx-auto space-y-4">
+    <div class="max-w-2xl space-y-4">
         {{-- Photo: saved as soon as it is picked --}}
         <div class="card flex items-center gap-4" x-data="{ busy: false, failed: false }">
             @if($avatarUrl)
                 <img src="{{ $avatarUrl }}?v={{ $user->updated_at?->timestamp }}" alt="Your photo" class="w-20 h-20 rounded-full object-cover">
             @else
-                <span class="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center muted"><x-icon name="user" class="w-9 h-9" /></span>
+                <span class="w-20 h-20 rounded-full bg-surface-page dark:bg-night-line flex items-center justify-center muted"><x-icon name="user" class="w-9 h-9" /></span>
             @endif
             <div class="space-y-2">
                 <form method="POST" action="{{ route('profile.photo') }}" x-ref="photoForm">
@@ -22,7 +22,7 @@
                 @if($avatarUrl)
                     <form method="POST" action="{{ route('profile.photo.destroy') }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="text-sm text-red-600 dark:text-red-400 hover:underline">Remove</button>
+                        <button type="submit" class="text-sm text-status-error dark:text-red-400 hover:underline">Remove</button>
                     </form>
                 @endif
                 <p class="field-error" x-show="failed" x-cloak>Could not use that photo. Try a different one.</p>

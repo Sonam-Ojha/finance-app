@@ -4,10 +4,10 @@
         $selected = (int) old('category_id', $expense?->category_id ?? ($categories->firstWhere('id', $picked)?->id ?? $categories->first()?->id));
     @endphp
 
-    <div class="max-w-2xl mx-auto space-y-4">
+    <div class="max-w-2xl space-y-4">
         @unless($expense)
-            <div class="seg !bg-white dark:!bg-slate-800 shadow-sm">
-                <span class="seg-item seg-on !bg-indigo-600 !text-white">Expenses</span>
+            <div class="seg">
+                <span class="seg-item seg-on">Expenses</span>
                 <a href="{{ route('incomes.create') }}" class="seg-item">Income</a>
             </div>
         @endunless
@@ -17,7 +17,6 @@
             @if($expense) @method('PUT') @endif
             <input type="hidden" name="back" value="{{ old('back', $back) }}">
 
-            <h2 class="page-title">{{ $expense ? 'Edit expense' : 'New expense' }}</h2>
 
             @include('tracker.partials.entry-fields', [
                 'amountValue'  => $expense ? $money->toInput($expense->amount_minor) : '',

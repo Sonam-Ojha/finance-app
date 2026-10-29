@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Support\Accounts;
 use App\Support\Alerts;
 use App\Support\DisplayCurrency;
 use App\Support\Labels;
@@ -25,8 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // What every signed-in page's frame shows: the currency the charts
-        // format in, the bell's red dot, and the profile photo.
+        // What My account's frame (layouts/shell) needs on top of the admin
+        // pages': the currency the charts format in, and the bell's red dot.
         View::composer('layouts.app', function ($view) {
             $user  = Auth::user();
             $money = DisplayCurrency::for($user);
@@ -34,7 +33,6 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'layoutMoney' => $money,
                 'overBudget'  => Alerts::forMonth($user, Labels::now()->format('Y-m'), $money)['over'],
-                'avatarUrl'   => Accounts::avatarUrl($user),
             ]);
         });
     }

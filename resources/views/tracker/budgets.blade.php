@@ -2,7 +2,7 @@
     <x-slot name="title">Budgets</x-slot>
     @php $pad = mb_strlen($money->symbol) > 1 ? '!pl-12' : '!pl-8'; @endphp
 
-    <form method="POST" action="{{ route('budgets.update') }}" class="max-w-2xl mx-auto space-y-4">
+    <form method="POST" action="{{ route('budgets.update') }}" class="max-w-2xl space-y-4">
         @csrf @method('PUT')
         <input type="hidden" name="month" value="{{ $month }}">
 
@@ -65,7 +65,7 @@
         <p class="text-xs muted">Budgets here apply to {{ $monthLabel }} only. An empty category field uses its every-month budget, shown in grey.</p>
 
         <div class="flex items-center justify-between gap-2">
-            <a href="{{ route('budgets.defaults') }}" class="card !p-3 flex-1 flex items-center justify-between hover:shadow-md">
+            <a href="{{ route('budgets.defaults') }}" class="card !p-3 flex-1 flex items-center justify-between transition-shadow hover:ring-2 hover:ring-brand-navy/15 dark:hover:ring-brand-cyan/30">
                 <span class="text-sm font-medium strong">Every-month budgets</span><x-icon name="chevron-right" class="w-4 h-4 muted" />
             </a>
             <button type="submit" class="btn-primary !py-3">Save</button>

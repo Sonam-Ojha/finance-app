@@ -54,6 +54,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [Tracker\SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/appearance', [Tracker\SettingsController::class, 'appearance'])->name('settings.appearance');
     Route::put('/settings/appearance', [Tracker\SettingsController::class, 'updateTheme'])->name('settings.theme');
+    Route::put('/settings/sidebar', [Tracker\SettingsController::class, 'updateSidebar'])->name('settings.sidebar');
     Route::put('/settings/email-notifications', [Tracker\SettingsController::class, 'updateEmailNotifications'])->name('settings.email');
     Route::get('/about', [Tracker\SettingsController::class, 'about'])->name('about');
 
@@ -156,6 +157,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('users/{user}/role', [AdminUserController::class, 'updateRole'])->name('users.role');
     Route::get('notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications', [AdminNotificationController::class, 'store'])->name('notifications.store');
+    Route::view('settings', 'admin.settings')->name('settings');
 });
 
 require __DIR__.'/auth.php';

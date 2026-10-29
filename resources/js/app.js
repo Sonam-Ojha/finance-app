@@ -51,9 +51,12 @@ window.formatMoney = (stored) => formatDisplay(toDisplayMinor(stored));
 const isDark = () => document.documentElement.classList.contains('dark');
 const INCOME = '#10b981';
 const EXPENSE = '#ef4444';
-const ACCENT = '#6366f1';
-const inkColor = () => (isDark() ? '#94a3b8' : '#64748b');
-const gridColor = () => (isDark() ? 'rgba(148,163,184,.15)' : 'rgba(100,116,139,.15)');
+// The design system's tokens (tailwind.config.js): navy, or cyan in dark mode.
+const accent = () => (isDark() ? '#00a7cb' : '#002e62');
+const inkColor = () => (isDark() ? '#9ca3af' : '#4b5563');
+const gridColor = () => (isDark() ? '#243047' : '#f2f4f7');
+// Only My account loads Chart.js; the admin pages draw their charts in HTML.
+if (window.Chart) window.Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
 
 /** The app's axis: three even steps from zero up to a round top above the highest bar. */
 function axisTop(maxDisplay) {
@@ -107,7 +110,7 @@ window.barChart = (canvas, { labels, income, expense, highlight = -1 }) => {
                 x: {
                     grid: { display: false },
                     ticks: {
-                        color: (ctx) => (ctx.index === highlight ? ACCENT : inkColor()),
+                        color: (ctx) => (ctx.index === highlight ? accent() : inkColor()),
                         font: (ctx) => ({ weight: ctx.index === highlight ? '700' : '400' }),
                     },
                 },

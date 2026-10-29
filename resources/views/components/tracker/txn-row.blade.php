@@ -11,7 +11,7 @@
     $amount = $money->format($row['amount_minor']);
 @endphp
 <div class="flex items-center gap-2 py-2.5">
-    <a href="{{ $href }}" class="flex items-center gap-3 flex-1 min-w-0 rounded-xl -mx-2 px-2 py-1 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+    <a href="{{ $href }}" class="flex items-center gap-3 flex-1 min-w-0 rounded-xl -mx-2 px-2 py-1 hover:bg-surface-page dark:hover:bg-white/5">
         <x-tracker.badge :icon="$income ? \App\Support\Labels::sourceIcon($row['source']) : $row['category_icon']"
                          :color="$income ? '#10B981' : $row['category_color']" />
         <div class="min-w-0 flex-1">
@@ -32,7 +32,7 @@
               data-confirm-button="Delete">
             @csrf @method('DELETE')
             <input type="hidden" name="back" value="{{ request()->fullUrl() }}">
-            <button type="submit" class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" aria-label="Delete {{ $income ? 'income' : 'expense' }}">
+            <button type="submit" class="p-2 rounded-lg text-ink-muted dark:text-night-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10" aria-label="Delete {{ $income ? 'income' : 'expense' }}">
                 <x-icon name="trash" class="w-4 h-4" />
             </button>
         </form>

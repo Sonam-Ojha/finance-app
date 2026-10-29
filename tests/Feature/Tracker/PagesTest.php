@@ -40,11 +40,11 @@ class PagesTest extends TrackerTestCase
         foreach (['Bank Accounts', 'Credit Cards', 'Loans / EMI', 'Investments', 'Commission', 'Cashback', 'Contact Ledger', 'Reminders', 'Pending Money'] as $old) {
             $page->assertDontSee($old);
         }
-        $page->assertDontSee('Send Notification');
+        $page->assertDontSee('Send notification');
 
         $admin = $this->makeUser(['email' => 'admin@example.com']);
         $admin->forceFill(['role' => User::ROLE_ADMIN])->save();
-        $this->actingAs($admin)->get('/dashboard')->assertSee('Send Notification')->assertSee('Users');
+        $this->actingAs($admin)->get('/dashboard')->assertSee('Send notification')->assertSee('Users');
     }
 
     public function test_dark_mode_follows_the_appearance_setting(): void

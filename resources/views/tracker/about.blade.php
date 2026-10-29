@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">About</x-slot>
 
-    <div class="max-w-2xl mx-auto space-y-4">
+    <div class="max-w-2xl space-y-4">
         <div class="card !p-0 divide-soft">
             @foreach([
                 ['Expenses recorded', number_format($expenses)],

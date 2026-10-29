@@ -1,11 +1,11 @@
 <x-app-layout>
     <x-slot name="title">{{ $income ? 'Edit income' : 'New income' }}</x-slot>
 
-    <div class="max-w-2xl mx-auto space-y-4">
+    <div class="max-w-2xl space-y-4">
         @unless($income)
-            <div class="seg !bg-white dark:!bg-slate-800 shadow-sm">
+            <div class="seg">
                 <a href="{{ route('expenses.create') }}" class="seg-item">Expenses</a>
-                <span class="seg-item seg-on !bg-emerald-600 !text-white">Income</span>
+                <span class="seg-item seg-on">Income</span>
             </div>
         @endunless
 
@@ -14,7 +14,6 @@
             @if($income) @method('PUT') @endif
             <input type="hidden" name="back" value="{{ old('back', $back) }}">
 
-            <h2 class="page-title">{{ $income ? 'Edit income' : 'New income' }}</h2>
 
             @include('tracker.partials.entry-fields', [
                 'amountLabel'  => 'Amount received',

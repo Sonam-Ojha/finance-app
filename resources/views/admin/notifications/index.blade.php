@@ -1,13 +1,10 @@
 <x-admin-layout>
     <x-slot name="title">Notifications</x-slot>
 
-    <div>
-        <h1 class="adm-h1">Notifications</h1>
-        <p class="mt-1 text-sm text-ink-muted">
-            {{ \App\Support\Counts::indian($devices) }} {{ \Illuminate\Support\Str::plural('phone', $devices) }} signed in, from {{ \App\Support\Counts::indian($reachable) }} {{ \Illuminate\Support\Str::plural('user', $reachable) }}.
-            Every message is also kept in the app's notification list.
-        </p>
-    </div>
+    <x-slot name="subtitle">
+        {{ \App\Support\Counts::indian($devices) }} {{ \Illuminate\Support\Str::plural('phone', $devices) }} signed in, from {{ \App\Support\Counts::indian($reachable) }} {{ \Illuminate\Support\Str::plural('user', $reachable) }}.
+        Every message is also kept in the app's notification list.
+    </x-slot>
 
     @unless($configured)
         <div class="adm-strip" role="status">

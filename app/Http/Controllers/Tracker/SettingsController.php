@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AppExpense;
 use App\Models\Category;
 use App\Support\DisplayCurrency;
+use App\Support\SidebarColors;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /** The app's Settings tab, Appearance and About. */
 class SettingsController extends Controller
@@ -39,6 +41,16 @@ class SettingsController extends Controller
         $request->user()->update(['theme_mode' => $request->theme_mode]);
 
         return redirect()->route('settings.appearance');
+    }
+
+    /** The sidebar colour, picked from Appearance or from the admin Settings page. */
+    public function updateSidebar(Request $request)
+    {
+        $request->validate(['sidebar_color' => ['required', Rule::in(array_keys(SidebarColors::ALL))]]);
+        $request->user()->update(['sidebar_color' => $request->sidebar_color]);
+
+        return redirect()->back(302, [], route('settings.appearance'))
+            ->with('success', 'Sidebar colour set to ' . SidebarColors::ALL[$request->sidebar_color][0] . '.');
     }
 
     /** The per-user switch for the activity emails. */

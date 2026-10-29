@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">{{ $category ? 'Edit category' : 'New category' }}</x-slot>
 
-    <div class="max-w-2xl mx-auto space-y-4"
+    <div class="max-w-2xl space-y-4"
          x-data="{
              name: @js(old('name', $category?->name ?? '')),
              icon: @js(old('icon', $category?->icon ?? $icons[0])),
@@ -42,8 +42,8 @@
                 <div class="flex flex-wrap gap-1.5">
                     @foreach($icons as $emoji)
                         <button type="button" @click="icon = @js($emoji)" :aria-pressed="icon === @js($emoji)" aria-label="Icon {{ $emoji }}"
-                                class="w-11 h-11 rounded-xl text-xl flex items-center justify-center border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700"
-                                :class="icon === @js($emoji) && '!border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20'">{{ $emoji }}</button>
+                                class="w-11 h-11 rounded-xl text-xl flex items-center justify-center border border-transparent hover:bg-surface-page dark:hover:bg-white/5"
+                                :class="icon === @js($emoji) && '!border-brand-navy bg-brand-tint dark:!border-brand-cyan dark:bg-brand-cyan/15'">{{ $emoji }}</button>
                     @endforeach
                 </div>
                 @error('icon')<p class="field-error">{{ $message }}</p>@enderror
@@ -54,8 +54,8 @@
                 <div class="flex flex-wrap gap-2.5">
                     @foreach($colors as $swatch)
                         <button type="button" @click="color = @js($swatch)" aria-label="Colour {{ $swatch }}" :aria-pressed="color === @js($swatch)"
-                                class="w-9 h-9 rounded-full ring-offset-2 dark:ring-offset-slate-800" style="background-color: {{ $swatch }}"
-                                :class="color.toUpperCase() === @js($swatch) && 'ring-2 ring-slate-800 dark:ring-white'"></button>
+                                class="w-9 h-9 rounded-full ring-offset-2 dark:ring-offset-night-card" style="background-color: {{ $swatch }}"
+                                :class="color.toUpperCase() === @js($swatch) && 'ring-2 ring-brand-navy dark:ring-white'"></button>
                     @endforeach
                 </div>
                 @error('color')<p class="field-error">{{ $message }}</p>@enderror

@@ -15,7 +15,7 @@ export default {
 
     theme: {
         extend: {
-            // The admin pages' design system (Mobilise). The personal app keeps its own look.
+            // The design system (Mobilise) for every signed-in page, admin and My account.
             colors: {
                 brand: {
                     navy: '#002e62', // primary: sidebar, headings, primary buttons, links, chart bars
@@ -32,6 +32,15 @@ export default {
                     line: '#e5e7eb',  // table header border
                     field: '#d1d5db', // input, segmented-control and info-strip borders
                 },
+                // My account in dark mode (the admin pages are light only).
+                night: {
+                    page: '#0b1220',
+                    card: '#131c2e',
+                    line: '#243047',   // dividers and borders
+                    field: '#3a4763',  // input and segmented-control borders
+                    ink: '#e5e7eb',
+                    muted: '#9ca3af',
+                },
                 chart: { 3: '#6b7280', 4: '#9ca3af' }, // neutral series; #9ca3af is also the baseline
                 status: {
                     success: '#16a34a',     // dots and fills only
@@ -41,9 +50,9 @@ export default {
                 },
             },
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
                 display: ['Poppins', 'Inter', 'system-ui', 'sans-serif'], // headings and big numbers
-                inter: ['Inter', 'system-ui', 'sans-serif'],              // admin body and UI text
+                inter: ['Inter', 'system-ui', 'sans-serif'],              // body and UI text
                 mono: ['"JetBrains Mono"', 'Menlo', 'monospace'],        // IDs like "user #4821"
             },
             borderRadius: {

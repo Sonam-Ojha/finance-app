@@ -3,9 +3,11 @@
     @php
         $hour = \App\Support\Labels::now()->hour;
         $greeting = $hour < 12 ? 'Good Morning' : ($hour < 17 ? 'Good Afternoon' : 'Good Evening');
-        $firstName = strtok(trim($user->name ?? ''), ' ') ?: 'Welcome';
+        $firstName = strtok(trim($user->name ?? ''), ' ');
         $mask = '••••••';
     @endphp
+    <x-slot name="heading">{{ $greeting }}{{ $firstName ? ", {$firstName}" : '' }} 👋</x-slot>
+    <x-slot name="subtitle">{{ \App\Support\Labels::now()->format('l, j F') }} · your money this month</x-slot>
 
     <div class="space-y-4"
          x-data="{
@@ -13,27 +15,22 @@
              toggle() { this.hide = !this.hide; try { localStorage.setItem('home_hide_balance', this.hide ? '1' : '0') } catch (e) {} },
          }">
 
-        <div>
-            <p class="text-sm muted">{{ $greeting }} · {{ \App\Support\Labels::now()->format('D, j M') }}</p>
-            <h2 class="text-2xl font-bold strong">{{ $firstName }} 👋</h2>
-        </div>
-
         <div class="grid gap-4 lg:grid-cols-5">
             {{-- Balance --}}
-            <div class="lg:col-span-3 rounded-2xl p-5 text-white shadow-sm" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
-                <div class="flex items-center gap-2 text-sm text-indigo-100">
+            <div class="lg:col-span-3 rounded-card bg-brand-navy p-6 text-white">
+                <div class="flex items-center gap-2 text-sm text-white/80">
                     Total Balance
-                    <button type="button" @click="toggle()" class="p-1 rounded-md hover:bg-white/10" :aria-label="hide ? 'Show amounts' : 'Hide amounts'">
+                    <button type="button" @click="toggle()" class="flex h-9 w-9 items-center justify-center rounded-chip hover:bg-white/10" :aria-label="hide ? 'Show amounts' : 'Hide amounts'">
                         <x-icon name="eye" class="w-4 h-4" x-show="!hide" />
                         <x-icon name="eye-off" class="w-4 h-4" x-show="hide" x-cloak />
                     </button>
                 </div>
-                <p class="mt-1 text-3xl sm:text-4xl font-bold tracking-tight" x-text="hide ? @js($mask) : @js($money->format($balance))">{{ $money->format($balance) }}</p>
+                <p class="mt-1 font-display text-[32px] font-semibold leading-[1.1] sm:text-[40px]" x-text="hide ? @js($mask) : @js($money->format($balance))">{{ $money->format($balance) }}</p>
                 <div class="mt-2 text-sm">
                     @if($noIncome)
                         <a href="{{ route('incomes.create') }}" class="font-semibold text-white underline underline-offset-2">Add your income to see what is left →</a>
                     @else
-                        <span x-show="!hide" class="[&_*]:!text-white/90 [&_.muted]:!text-indigo-100">
+                        <span x-show="!hide" class="[&_*]:!text-white/90 [&_.muted]:!text-white/80">
                             <x-tracker.change :change="$balanceChange" suffix="from last month" />
                         </span>
                     @endif
@@ -43,14 +40,14 @@
             {{-- Quick actions --}}
             <div class="lg:col-span-2 card grid grid-cols-4 gap-2 content-center">
                 @foreach([
-                    [route('expenses.create'), 'Add Expense', 'plus', 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300'],
-                    [route('incomes.create'), 'Add Income', 'plus', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'],
-                    [route('budgets.index'), 'Budgets', 'wallet', 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300'],
-                    [route('categories.index'), 'Categories', 'tag', 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300'],
+                    [route('expenses.create'), 'Add Expense', 'plus', 'bg-red-50 text-status-error dark:bg-red-500/15 dark:text-red-300'],
+                    [route('incomes.create'), 'Add Income', 'plus', 'bg-emerald-50 text-status-successText dark:bg-emerald-500/15 dark:text-emerald-300'],
+                    [route('budgets.index'), 'Budgets', 'wallet', ''],
+                    [route('categories.index'), 'Categories', 'tag', ''],
                 ] as [$href, $label, $icon, $tone])
-                    <a href="{{ $href }}" class="flex flex-col items-center gap-2 rounded-xl py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                        <span class="w-12 h-12 rounded-full flex items-center justify-center {{ $tone }}"><x-icon :name="$icon" /></span>
-                        <span class="text-xs font-medium strong text-center">{{ $label }}</span>
+                    <a href="{{ $href }}" class="flex flex-col items-center gap-2 rounded-card py-2 hover:bg-surface-page dark:hover:bg-white/5">
+                        <span class="icon-tile !h-12 !w-12 {{ $tone }}"><x-icon :name="$icon" /></span>
+                        <span class="text-[13px] font-semibold strong text-center">{{ $label }}</span>
                     </a>
                 @endforeach
             </div>
@@ -59,9 +56,9 @@
         {{-- This month --}}
         <div class="grid grid-cols-3 gap-3">
             @foreach($tiles as [$label, $amount, $change, $goodUp, $tone])
-                <div class="card !p-3 sm:!p-4 min-w-0">
-                    <p class="text-xs muted">{{ $label }}</p>
-                    <p class="mt-1 text-[13px] sm:text-xl font-bold leading-tight tracking-tight break-all {{ $tone }}" x-text="hide ? @js($mask) : @js($money->format($amount))">{{ $money->format($amount) }}</p>
+                <div class="card !px-3 !py-4 sm:!px-6 sm:!py-5 min-w-0">
+                    <p class="text-[13px] sm:text-sm muted">{{ $label }}</p>
+                    <p class="mt-1 font-display text-[13px] sm:text-2xl font-semibold leading-tight break-all {{ $tone }}" x-text="hide ? @js($mask) : @js($money->format($amount))">{{ $money->format($amount) }}</p>
                     <div class="mt-1">
                         <span x-show="!hide"><x-tracker.change :change="$change" :good-up="$goodUp" /></span>
                         <span x-show="hide" x-cloak class="text-xs muted">—</span>

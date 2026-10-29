@@ -9,25 +9,20 @@
         $withIds = fn (string $text) => preg_replace('/#(\d+)/', '<span class="font-mono text-[13px]">#$1</span>', e($text));
     @endphp
 
-    {{-- 4.1 Header --}}
-    <div class="flex flex-wrap items-end justify-between gap-4">
-        <div>
-            <h1 class="adm-h1">Dashboard</h1>
-            <p class="mt-1 text-sm text-ink-muted">Every account at a glance · Updated {{ $updatedAt }}</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <form method="GET" action="{{ route('admin.users.index') }}" role="search" class="relative w-full sm:w-auto">
-                <label for="admin-search" class="sr-only">Search users by name or email</label>
-                <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
-                <input id="admin-search" type="search" name="q" placeholder="Search users by name or email" class="adm-input w-full pl-10 sm:w-[300px]">
-            </form>
-            <form method="GET" action="{{ route('admin.dashboard') }}" class="adm-seg" aria-label="Time range">
-                @foreach($ranges as $key => [$label])
-                    <button type="submit" name="range" value="{{ $key }}" aria-pressed="{{ $range === $key ? 'true' : 'false' }}" class="adm-seg-item">{{ $label }}</button>
-                @endforeach
-            </form>
-        </div>
-    </div>
+    {{-- 4.1 Header (rendered by layouts/shell) --}}
+    <x-slot name="subtitle">Every account at a glance · Updated {{ $updatedAt }}</x-slot>
+    <x-slot name="actions">
+        <form method="GET" action="{{ route('admin.users.index') }}" role="search" class="relative w-full sm:w-auto">
+            <label for="admin-search" class="sr-only">Search users by name or email</label>
+            <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
+            <input id="admin-search" type="search" name="q" placeholder="Search users by name or email" class="adm-input w-full pl-10 sm:w-[300px]">
+        </form>
+        <form method="GET" action="{{ route('admin.dashboard') }}" class="adm-seg" aria-label="Time range">
+            @foreach($ranges as $key => [$label])
+                <button type="submit" name="range" value="{{ $key }}" aria-pressed="{{ $range === $key ? 'true' : 'false' }}" class="adm-seg-item">{{ $label }}</button>
+            @endforeach
+        </form>
+    </x-slot>
 
     {{-- 4.2 Privacy --}}
     <div class="adm-strip items-center">

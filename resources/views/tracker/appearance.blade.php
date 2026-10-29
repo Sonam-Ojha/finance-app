@@ -1,9 +1,13 @@
 <x-app-layout>
     <x-slot name="title">Appearance</x-slot>
+    <x-slot name="subtitle">Choose how the app looks.</x-slot>
 
-    <div class="max-w-2xl mx-auto space-y-4">
-        <div class="card space-y-4">
-            <p class="text-sm muted">Choose how the app looks. System follows your device's light or dark setting.</p>
+    <div class="max-w-2xl space-y-4">
+        <section class="card space-y-4">
+            <div>
+                <h2 class="card-title">Theme</h2>
+                <p class="mt-1 text-[13px] muted">System follows your device's light or dark setting.</p>
+            </div>
 
             <form method="POST" action="{{ route('settings.theme') }}" class="seg w-full">
                 @csrf @method('PUT')
@@ -20,6 +24,14 @@
                     Always {{ $theme }}, whatever your device uses.
                 @endif
             </p>
-        </div>
+        </section>
+
+        <section class="card space-y-4">
+            <div>
+                <h2 class="card-title">Sidebar colour</h2>
+                <p class="mt-1 text-[13px] muted">One tap saves it.{{ auth()->user()->isAdmin() ? ' The admin panel uses it too.' : '' }}</p>
+            </div>
+            @include('partials.sidebar-colors')
+        </section>
     </div>
 </x-app-layout>

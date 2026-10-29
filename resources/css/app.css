@@ -2,51 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* The building blocks of the expense-tracker pages, light and dark. */
+/* My account's building blocks: the same Mobilise tokens as the admin
+ * classes below (one design system), plus dark mode from Appearance. */
 @layer components {
-    .card { @apply bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/60 p-4 sm:p-5; }
-    .card-title { @apply text-[15px] font-semibold text-slate-800 dark:text-slate-100; }
-    .section-label { @apply text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500; }
-    .page-title { @apply text-lg font-bold text-slate-800 dark:text-slate-100; }
-    .muted { @apply text-slate-500 dark:text-slate-400; }
-    .strong { @apply text-slate-800 dark:text-slate-100; }
+    .card { @apply rounded-card bg-surface-card p-4 sm:p-6 dark:bg-night-card; }
+    .card-title { @apply font-display text-lg font-semibold text-brand-navy dark:text-white; }
+    .section-label { @apply text-[13px] font-semibold uppercase tracking-[0.05em] text-ink-muted dark:text-night-muted; }
+    .page-title { @apply font-display text-[30px] font-semibold leading-[1.2] text-brand-navy dark:text-white; }
+    .muted { @apply text-ink-muted dark:text-night-muted; }
+    .strong { @apply text-ink dark:text-night-ink; }
 
-    .field-label { @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1.5; }
-    .input { @apply w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder-slate-500; }
-    .field-error { @apply mt-1 text-xs text-red-600 dark:text-red-400; }
+    .field-label { @apply mb-1.5 block text-sm font-semibold text-ink dark:text-night-ink; }
+    .input { @apply min-h-11 w-full rounded-card border-surface-field bg-white px-3 text-sm text-ink placeholder:text-ink-muted focus:border-brand-navy focus:ring-brand-navy dark:border-night-field dark:bg-night-page dark:text-night-ink dark:placeholder:text-night-muted dark:focus:border-brand-cyan dark:focus:ring-brand-cyan; }
+    /* Room for the select arrow that @tailwindcss/forms draws on the right. */
+    select.input { @apply pr-10; }
+    .field-error { @apply mt-1 text-[13px] text-status-error dark:text-red-400; }
 
-    .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50; }
-    .btn-primary { @apply btn bg-indigo-600 text-white hover:bg-indigo-700; }
-    .btn-secondary { @apply btn border border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700; }
-    .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
-    .btn-danger-ghost { @apply btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10; }
+    .btn { @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-card px-5 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50; }
+    .btn-primary { @apply btn bg-brand-navy text-white hover:bg-[#0b3d77] dark:bg-brand-cyan dark:text-brand-navy dark:hover:bg-[#33b9d5]; }
+    .btn-secondary { @apply btn border-2 border-brand-navy text-brand-navy hover:bg-brand-tint dark:border-night-field dark:text-night-ink dark:hover:bg-white/5; }
+    .btn-danger { @apply btn bg-status-error text-white hover:bg-[#b91c1c]; }
+    .btn-danger-ghost { @apply btn text-status-error hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10; }
 
-    .chip { @apply inline-flex cursor-pointer select-none items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700; }
-    .chip-on { @apply border-indigo-500 bg-indigo-50 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-500/20 dark:text-indigo-200; }
+    .chip { @apply inline-flex min-h-9 cursor-pointer select-none items-center gap-1.5 rounded-chip border border-surface-field bg-white px-3 py-1.5 text-sm text-ink transition-colors hover:border-brand-navy dark:border-night-field dark:bg-transparent dark:text-night-ink dark:hover:border-brand-cyan; }
+    .chip-on { @apply border-brand-navy bg-brand-navy font-semibold text-white dark:border-brand-cyan dark:bg-brand-cyan dark:text-brand-navy; }
     /* A radio or checkbox chip: <input class="peer sr-only"><span class="chip">. */
     .peer:checked + .chip { @apply chip-on; }
-    .peer:focus-visible + .chip { @apply ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-800; }
+    .peer:focus-visible + .chip { @apply outline outline-2 outline-offset-2 outline-brand-navy dark:outline-brand-cyan; }
 
-    .link { @apply font-medium text-indigo-600 hover:underline dark:text-indigo-400; }
-    .money-in { @apply text-emerald-600 dark:text-emerald-400; }
-    .money-out { @apply text-red-600 dark:text-red-400; }
+    .link { @apply font-semibold text-brand-navy hover:underline dark:text-brand-cyan; }
+    .money-in { @apply text-status-successText dark:text-emerald-400; }
+    .money-out { @apply text-status-error dark:text-red-400; }
 
-    .row-link { @apply flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50; }
-    .divide-soft { @apply divide-y divide-slate-100 dark:divide-slate-700/60; }
+    .row-link { @apply flex items-center gap-3 rounded-chip px-3 py-3 transition-colors hover:bg-surface-page dark:hover:bg-white/5; }
+    .divide-soft { @apply divide-y divide-surface-page dark:divide-night-line; }
 
-    .seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-900; }
-    .seg-item { @apply rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300; }
-    .seg-on { @apply bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white; }
+    .seg { @apply inline-flex rounded-card border border-surface-field bg-white p-[3px] dark:border-night-field dark:bg-night-card; }
+    .seg-item { @apply inline-flex h-9 items-center justify-center rounded-[9px] px-3.5 text-sm font-semibold text-ink-muted hover:text-brand-navy dark:text-night-muted dark:hover:text-white; }
+    .seg-on { @apply bg-brand-navy text-white hover:text-white dark:bg-brand-cyan dark:text-brand-navy dark:hover:text-brand-navy; }
 
-    .bar-track { @apply h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700; }
+    .bar-track { @apply h-2 w-full overflow-hidden rounded-full bg-surface-page dark:bg-night-line; }
+
+    /* A soft icon tile (settings rows, quick actions, alerts). */
+    .icon-tile { @apply flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-card bg-brand-tint text-brand-navy dark:bg-brand-cyan/15 dark:text-brand-cyan; }
 }
 
-/* The admin pages (layouts/admin): the Mobilise design system. Flat — no
- * shadows or gradients — with navy as the one strong colour. */
+/* The frame both views share (layouts/shell). */
 @layer components {
-    .adm-card { @apply rounded-card bg-surface-card p-6; }
-    .adm-h1 { @apply font-display text-[30px] font-semibold leading-[1.2] text-brand-navy; }
-    .adm-h2 { @apply font-display text-lg font-semibold text-brand-navy; }
+    .shell-link { @apply flex min-h-11 items-center gap-3 rounded-chip px-3 py-[11px] text-left text-[15px] text-white no-underline; }
+    .hdr-btn { @apply flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-card text-ink-muted hover:bg-surface-page hover:text-brand-navy dark:text-night-muted dark:hover:bg-white/5 dark:hover:text-white; }
+    :focus-visible { @apply outline outline-2 outline-offset-2 outline-brand-navy dark:outline-brand-cyan; }
+    .shell-side :focus-visible { @apply outline-white; }
+}
+
+/* The Mobilise design system, as the admin pages use it. Flat — no shadows
+ * or gradients — with navy as the one strong colour. */
+@layer components {
+    .adm-card { @apply rounded-card bg-surface-card p-4 sm:p-6 dark:bg-night-card; }
+    .adm-h1 { @apply font-display text-[26px] font-semibold leading-[1.2] text-brand-navy sm:text-[30px] dark:text-white; }
+    .adm-h2 { @apply font-display text-lg font-semibold text-brand-navy dark:text-white; }
     .adm-eyebrow { @apply text-[13px] font-semibold uppercase tracking-[0.05em]; }
     .adm-caption { @apply text-[13px] text-ink-muted; }
     .adm-link { @apply text-sm font-semibold text-brand-navy hover:underline; }
@@ -70,12 +84,12 @@
     .adm-seg-item { @apply inline-flex h-9 items-center rounded-[9px] px-3.5 text-sm font-semibold text-ink-muted hover:text-brand-navy; }
     .adm-seg-item[aria-pressed="true"], .adm-seg-item[aria-current="page"] { @apply bg-brand-navy text-white hover:text-white; }
 
-    .adm-strip { @apply flex items-start gap-3 rounded-card border border-surface-field bg-white px-4 py-3 text-sm; }
+    .adm-strip { @apply flex items-start gap-3 rounded-card border border-surface-field bg-white px-4 py-3 text-sm dark:border-night-field dark:bg-night-card; }
     .adm-th { @apply border-b border-surface-line px-3 py-3 text-left text-[13px] font-semibold text-ink-muted; }
     .adm-td { @apply border-b border-surface-page px-3 py-3 align-middle; }
 
     .adm-switch { @apply relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full bg-chart-4 transition-colors; }
-    .adm-switch[aria-checked="true"] { @apply bg-brand-navy; }
+    .adm-switch[aria-checked="true"] { @apply bg-brand-navy dark:bg-brand-cyan; }
     .adm-switch > span { @apply absolute left-[3px] h-[22px] w-[22px] rounded-full bg-white transition-transform; }
     .adm-switch[aria-checked="true"] > span { @apply translate-x-5; }
 }

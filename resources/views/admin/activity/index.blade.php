@@ -4,10 +4,7 @@
         $withIds = fn (string $text) => preg_replace('/#(\d+)/', '<span class="font-mono text-[13px]">#$1</span>', e($text));
     @endphp
 
-    <div>
-        <h1 class="adm-h1">Activity log</h1>
-        <p class="mt-1 text-sm text-ink-muted">Every change an admin made, newest first.</p>
-    </div>
+    <x-slot name="subtitle">Every change an admin made, newest first.</x-slot>
 
     <section class="adm-card min-w-0">
         <div class="overflow-x-auto">

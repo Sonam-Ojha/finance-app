@@ -19,16 +19,16 @@
                 @foreach(\Illuminate\Support\Arr::except(request()->query(), ['search', 'page', 'find']) as $key => $value)
                     @if(is_string($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
                 @endforeach
-                <x-icon name="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <x-icon name="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted dark:text-night-muted" />
                 <input type="search" name="search" value="{{ $filters['search'] }}" maxlength="100"
                        placeholder="Search transactions (e.g. Swiggy, Groceries)" @if($filters['find']) autofocus @endif
-                       class="input !pl-9 !rounded-full" aria-label="Search transactions">
+                       class="input !pl-9" aria-label="Search transactions">
             </form>
-            <button type="button" @click="filtersOpen = !filtersOpen" class="relative btn-secondary !rounded-full !px-3" aria-label="Filter and sort">
+            <button type="button" @click="filtersOpen = !filtersOpen" class="relative btn-secondary !px-3" aria-label="Filter and sort">
                 <x-icon name="funnel" class="w-4 h-4" />
                 <span class="hidden sm:inline">Filter & sort</span>
                 @if($filters['count'])
-                    <span class="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">{{ $filters['count'] }}</span>
+                    <span class="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-brand-navy text-white dark:bg-brand-cyan dark:text-brand-navy text-[11px] font-bold flex items-center justify-center">{{ $filters['count'] }}</span>
                 @endif
             </button>
         </div>
@@ -100,7 +100,7 @@
             </div>
 
             @foreach($filterErrors as $error)
-                <p class="text-sm text-red-600 dark:text-red-400">{{ $error }}</p>
+                <p class="text-sm text-status-error dark:text-red-400">{{ $error }}</p>
             @endforeach
 
             <div class="flex justify-end gap-2">
@@ -185,7 +185,7 @@
                 <div class="mt-2 space-y-4">
                     @foreach($groups as $group)
                         <section>
-                            <div class="flex items-center justify-between gap-2 pt-2 pb-1 border-b border-slate-100 dark:border-slate-700/60">
+                            <div class="flex items-center justify-between gap-2 pt-2 pb-1 border-b border-surface-page dark:border-night-line">
                                 <h4 class="section-label">{{ $group['label'] }}</h4>
                                 @if($byDay)
                                     <p class="text-xs font-semibold space-x-2">

@@ -27,7 +27,7 @@
             @foreach($breakdown['slices'] as $slice)
                 <li>
                     @if($link && $slice['category_id'])
-                        <a href="{{ $link($slice['category_id']) }}" class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                        <a href="{{ $link($slice['category_id']) }}" class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-surface-page dark:hover:bg-white/5">
                             <x-tracker.badge :icon="$slice['icon']" :color="$slice['color']" size="w-8 h-8 text-base" />
                             <span class="flex-1 text-sm strong truncate">{{ $slice['name'] }}</span>
                             <span class="text-sm font-semibold muted">{{ $slice['share'] }}%</span>

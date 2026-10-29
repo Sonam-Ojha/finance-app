@@ -51,7 +51,7 @@ class DashboardTest extends TestCase
             AppIncome::create(['user_id' => $owner->id, 'amount_minor' => 4567890, 'source' => 'Secret bonus', 'note' => 'Hidden payout', 'received_at' => now()->toDateString()]);
         }
 
-        foreach (['/admin', '/admin?range=7d', '/admin?range=12m', '/admin/users', '/admin/activity', '/admin/notifications'] as $url) {
+        foreach (['/admin', '/admin?range=7d', '/admin?range=12m', '/admin/users', '/admin/activity', '/admin/notifications', '/admin/settings'] as $url) {
             $page = $this->actingAs($this->admin)->get($url)->assertOk();
             foreach (['987654', '9,876.54', '4567890', '45,678.90', 'Secret biryani run', 'Secret bonus', 'Hidden payout', 'Groceries'] as $private) {
                 $page->assertDontSee($private);
@@ -115,6 +115,22 @@ class DashboardTest extends TestCase
 
         $this->actingAs($this->admin)->get('/dashboard')->assertOk()->assertSee('Switch view')->assertSee(route('admin.dashboard'));
         $this->actingAs($this->admin)->get('/admin')->assertSee('Switch view')->assertSee('My own expenses');
+    }
+
+    public function test_admins_pick_the_sidebar_colour_in_their_settings(): void
+    {
+        $this->actingAs(User::factory()->create())->get('/admin/settings')->assertForbidden();
+        $this->actingAs($this->admin)->get('/admin/settings')->assertOk()
+            ->assertSee('Sidebar colour')
+            ->assertSee('background-color: #002e62', false); // navy until one is picked
+
+        $this->actingAs($this->admin)->from('/admin/settings')->put('/settings/sidebar', ['sidebar_color' => 'wine'])
+            ->assertRedirect('/admin/settings')
+            ->assertSessionHas('success', 'Sidebar colour set to Wine.');
+
+        // One choice, and one frame, for both views.
+        $this->actingAs($this->admin)->get('/admin')->assertSee('background-color: #881337', false)->assertSee('Admin panel');
+        $this->actingAs($this->admin)->get('/dashboard')->assertSee('background-color: #881337', false)->assertSee('My account');
     }
 
     public function test_mask_email(): void

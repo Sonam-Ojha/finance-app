@@ -1,14 +1,11 @@
 <x-admin-layout>
     <x-slot name="title">Users</x-slot>
 
-    <div class="flex flex-wrap items-end justify-between gap-4">
-        <div>
-            <h1 class="adm-h1">Users</h1>
-            <p class="mt-1 text-sm text-ink-muted">
-                {{ \App\Support\Counts::indian($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}{{ $status ? ' not verified' : '' }}
-                · {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}
-            </p>
-        </div>
+    <x-slot name="subtitle">
+        {{ \App\Support\Counts::indian($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}{{ $status ? ' not verified' : '' }}
+        · {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}
+    </x-slot>
+    <x-slot name="actions">
         <form method="GET" action="{{ route('admin.users.index') }}" role="search" class="flex flex-wrap items-center gap-2">
             @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
             <label for="user-search" class="sr-only">Search users by name or email</label>
@@ -18,7 +15,7 @@
             </div>
             <button type="submit" class="adm-btn-primary !h-11">Search</button>
         </form>
-    </div>
+    </x-slot>
 
     <nav class="adm-seg self-start" aria-label="Filter">
         <a href="{{ route('admin.users.index', array_filter(['q' => $search])) }}" class="adm-seg-item" @unless($status) aria-current="page" @endunless>Everyone</a>

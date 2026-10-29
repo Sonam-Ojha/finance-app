@@ -2,7 +2,7 @@
     <x-slot name="title">Every-month budgets</x-slot>
     @php $pad = mb_strlen($money->symbol) > 1 ? '!pl-12' : '!pl-8'; @endphp
 
-    <form method="POST" action="{{ route('budgets.defaults.update') }}" class="max-w-2xl mx-auto space-y-4">
+    <form method="POST" action="{{ route('budgets.defaults.update') }}" class="max-w-2xl space-y-4">
         @csrf @method('PUT')
 
         <div class="card divide-soft !py-1">

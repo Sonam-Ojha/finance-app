@@ -49,7 +49,7 @@
                         <p class="text-xs muted">{{ $label }}</p>
                         <p class="text-lg sm:text-xl font-bold truncate {{ $tone }}">{{ $money->format($amount) }}</p>
                     </div>
-                    <a href="{{ $add }}" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center strong hover:bg-slate-200 dark:hover:bg-slate-600" aria-label="Add {{ strtolower($label) === 'expenses' ? 'expense' : 'income' }}">
+                    <a href="{{ $add }}" class="w-9 h-9 rounded-full bg-surface-page dark:bg-night-line flex items-center justify-center strong hover:bg-surface-field dark:hover:bg-white/10" aria-label="Add {{ strtolower($label) === 'expenses' ? 'expense' : 'income' }}">
                         <x-icon name="plus" class="w-4 h-4" />
                     </a>
                 </div>
@@ -85,7 +85,7 @@
             <div class="card">
                 <h3 class="card-title mb-2">History</h3>
                 @forelse($history as $day)
-                    <div class="flex items-center justify-between py-2.5 border-b last:border-0 border-slate-100 dark:border-slate-700/60">
+                    <div class="flex items-center justify-between py-2.5 border-b last:border-0 border-surface-page dark:border-night-line">
                         <span class="text-sm strong">{{ $day['label'] }}</span>
                         <span class="text-sm font-semibold space-x-2">
                             @if($day['income_minor'])<span class="money-in">+{{ $money->format($day['income_minor']) }}</span>@endif
