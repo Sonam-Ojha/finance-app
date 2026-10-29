@@ -219,6 +219,19 @@
 
         {{-- ══════════ PAGE ══════════ --}}
         <main class="flex min-w-0 flex-1 flex-col gap-6 px-4 pt-6 md:px-10 md:pb-12 md:pt-8 {{ $admin ? 'pb-12' : 'pb-24' }}">
+            {{-- Admins pass maintenance mode (App\Http\Middleware\WebMaintenance), so say it is on --}}
+            @if(auth()->user()?->isAdmin() && \App\Support\AppControl::maintenance())
+                <div class="adm-strip" role="status">
+                    <x-icon name="warning" class="mt-0.5 h-5 w-5 flex-shrink-0 text-status-warning" />
+                    <p class="flex-1">
+                        <span class="font-semibold">Maintenance mode is on.</span>
+                        Only admins can use the website; everyone else, and the app, sees the maintenance page.
+                        @unless(request()->routeIs('admin.app-control'))
+                            <a href="{{ route('admin.app-control') }}" class="link ml-1">Turn it off</a>
+                        @endunless
+                    </p>
+                </div>
+            @endif
             @if(session('success'))
                 <div class="adm-strip" role="status">
                     <x-icon name="check" class="mt-0.5 h-5 w-5 flex-shrink-0 text-status-successText dark:text-emerald-400" />

@@ -69,7 +69,8 @@ class AppControlTest extends TestCase
 
         // Admins carry on, on both sides of the panel.
         $this->actingAs($this->admin)->get('/admin')->assertOk()->assertSee('Maintenance mode is on');
-        $this->actingAs($this->admin)->get('/dashboard')->assertOk();
+        // …with a strip on every page saying it is on.
+        $this->actingAs($this->admin)->get('/dashboard')->assertOk()->assertSee('Only admins can use the website')->assertSee('Turn it off');
 
         // The API: 503 for everything but app-status, admins included.
         Sanctum::actingAs($user);
