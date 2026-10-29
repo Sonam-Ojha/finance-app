@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AppExpense;
 use App\Models\Category;
 use App\Support\ActivityMail;
-use App\Support\Money;
 use App\Support\PaymentMethods;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -83,13 +82,7 @@ class ExpenseController extends Controller
             'spent_at'       => $request->spent_at,
         ]);
 
-        ActivityMail::send($user, 'Expense added: ' . Money::inr($expense->amount_minor), 'You added an expense.', [
-            'Amount'    => Money::inr($expense->amount_minor),
-            'Category'  => trim("{$category->icon} {$category->name}"),
-            'Date'      => $expense->spent_at->format('j M Y'),
-            'Paid with' => PaymentMethods::label($expense->payment_method),
-            'Note'      => $expense->note,
-        ]);
+        ActivityMail::expenseAdded($user, $expense, $category);
 
         return response()->json(['data' => $this->joinedShape($expense->load('category'))], 201);
     }

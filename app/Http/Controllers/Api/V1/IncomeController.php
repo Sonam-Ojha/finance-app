@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\AppIncome;
 use App\Support\ActivityMail;
-use App\Support\Money;
 use App\Support\PaymentMethods;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -59,13 +58,7 @@ class IncomeController extends Controller
             'received_at'    => $request->received_at,
         ]);
 
-        ActivityMail::send($user, 'Income added: ' . Money::inr($income->amount_minor), 'You added an income.', [
-            'Amount'        => Money::inr($income->amount_minor),
-            'Source'        => $income->source,
-            'Date'          => $income->received_at->format('j M Y'),
-            'Received into' => PaymentMethods::label($income->payment_method),
-            'Note'          => $income->note,
-        ]);
+        ActivityMail::incomeAdded($user, $income);
 
         return response()->json(['data' => $income], 201);
     }

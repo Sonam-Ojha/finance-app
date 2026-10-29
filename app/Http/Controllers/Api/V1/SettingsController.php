@@ -24,10 +24,7 @@ class SettingsController extends Controller
         $user->update(['currency' => $request->currency]);
 
         if ($previous !== $user->currency) {
-            ActivityMail::send($user, "Currency changed to {$user->currency}", 'You changed the currency the app shows amounts in.', [
-                'From' => $previous,
-                'To'   => $user->currency,
-            ]);
+            ActivityMail::currencyChanged($user, $previous);
         }
 
         return response()->noContent();

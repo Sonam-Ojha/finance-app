@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminNotification;
 use App\Models\DeviceToken;
 use App\Models\User;
+use App\Support\AdminActivity;
 use App\Support\Fcm;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -63,6 +64,8 @@ class NotificationController extends Controller
             'status'         => $configured ? AdminNotification::STATUS_SENT : AdminNotification::STATUS_NOT_CONFIGURED,
             'devices'        => count($tokens),
         ]);
+        AdminActivity::record('notification.sent',
+            "sent “{$notification->title}” to " . ($target ? "user #{$target->id}" : 'all users'), $notification);
 
         if (! $configured) {
             return redirect()->route('admin.notifications.index')->with('error',

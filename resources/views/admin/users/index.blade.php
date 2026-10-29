@@ -1,76 +1,102 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="title">Users</x-slot>
-    <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="text-lg font-bold text-slate-800">Users</h2>
-                <p class="text-xs text-slate-500">{{ $users->total() }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }} · {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}</p>
-            </div>
-            <form method="GET" action="{{ route('admin.users.index') }}" class="flex gap-2">
-                <input type="search" name="q" value="{{ $search }}" placeholder="Search name or email"
-                       class="w-56 border border-gray-300 rounded-lg px-3 py-2 text-sm" aria-label="Search users">
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Search</button>
-            </form>
-        </div>
 
-        <div class="bg-white rounded-xl shadow-sm table-wrap">
-            <table class="w-full text-sm">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="adm-h1">Users</h1>
+            <p class="mt-1 text-sm text-ink-muted">
+                {{ \App\Support\Counts::indian($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}{{ $status ? ' not verified' : '' }}
+                · {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}
+            </p>
+        </div>
+        <form method="GET" action="{{ route('admin.users.index') }}" role="search" class="flex flex-wrap items-center gap-2">
+            @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
+            <label for="user-search" class="sr-only">Search users by name or email</label>
+            <div class="relative">
+                <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted" />
+                <input id="user-search" type="search" name="q" value="{{ $search }}" placeholder="Search users by name or email" class="adm-input w-full pl-10 sm:w-[300px]">
+            </div>
+            <button type="submit" class="adm-btn-primary !h-11">Search</button>
+        </form>
+    </div>
+
+    <nav class="adm-seg self-start" aria-label="Filter">
+        <a href="{{ route('admin.users.index', array_filter(['q' => $search])) }}" class="adm-seg-item" @unless($status) aria-current="page" @endunless>Everyone</a>
+        <a href="{{ route('admin.users.index', array_filter(['q' => $search, 'status' => 'unverified'])) }}" class="adm-seg-item" @if($status) aria-current="page" @endif>Not verified</a>
+    </nav>
+
+    <section class="adm-card min-w-0">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-sm">
                 <thead>
-                    <tr class="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
-                        <th class="px-4 py-3 font-semibold">User</th>
-                        <th class="px-4 py-3 font-semibold">Role</th>
-                        <th class="px-4 py-3 font-semibold">Phones</th>
-                        <th class="px-4 py-3 font-semibold">Joined</th>
-                        <th class="px-4 py-3 font-semibold text-right">Admin access</th>
+                    <tr>
+                        <th scope="col" class="adm-th">User</th>
+                        <th scope="col" class="adm-th">Role</th>
+                        <th scope="col" class="adm-th">Status</th>
+                        <th scope="col" class="adm-th">Phones</th>
+                        <th scope="col" class="adm-th">Joined</th>
+                        <th scope="col" class="adm-th text-right">Admin access</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($users as $user)
-                        <tr class="border-b border-slate-50 last:border-0">
-                            <td class="px-4 py-3">
-                                <p class="font-medium text-slate-800">{{ $user->name ?: '—' }}</p>
-                                <p class="text-xs text-slate-500">{{ $user->email }}</p>
+                        <tr>
+                            <td class="adm-td">
+                                <p class="font-semibold">{{ $user->name ?: '—' }} <span class="font-mono text-[13px] font-normal text-ink-muted">#{{ $user->id }}</span></p>
+                                <p class="adm-caption">{{ $user->email }}</p>
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="adm-td">
                                 @if($user->isAdmin())
-                                    <span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md text-xs font-semibold">Admin</span>
+                                    <span class="adm-badge bg-brand-navy text-white">Admin</span>
                                 @else
-                                    <span class="inline-flex items-center bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-xs font-medium">User</span>
+                                    <span class="adm-badge-low">User</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-slate-600">{{ $user->device_tokens_count }}</td>
-                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ $user->created_at?->format('d M Y') }}</td>
-                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <td class="adm-td">
+                                @if($user->email_verified_at)
+                                    <span class="inline-flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-status-success" aria-hidden="true"></span>Active</span>
+                                @else
+                                    <span class="adm-badge-medium">Not verified</span>
+                                @endif
+                            </td>
+                            <td class="adm-td">{{ $user->device_tokens_count }}</td>
+                            <td class="adm-td whitespace-nowrap text-ink-muted">{{ $user->created_at?->timezone(config('app.display_timezone'))->format('j M Y') }}</td>
+                            <td class="adm-td whitespace-nowrap text-right">
                                 @if($user->is(auth()->user()))
-                                    <span class="text-xs text-slate-400">You</span>
+                                    <span class="adm-caption">You</span>
                                 @elseif($user->isAdmin())
                                     <form method="POST" action="{{ route('admin.users.role', $user) }}"
-                                          onsubmit="return confirm('Remove admin access for {{ $user->email }}?')">
+                                          data-confirm-title="Remove admin access?"
+                                          data-confirm-message="{{ $user->email }} will go back to being an ordinary user."
+                                          data-confirm-button="Remove admin">
                                         @csrf @method('PATCH')
                                         <input type="hidden" name="role" value="user">
-                                        <button class="text-xs font-semibold text-red-600 hover:underline">Remove admin</button>
+                                        <button class="min-h-11 px-2 text-sm font-semibold text-status-error hover:underline">Remove admin</button>
                                     </form>
                                 @else
                                     <form method="POST" action="{{ route('admin.users.role', $user) }}"
-                                          onsubmit="return confirm('Make {{ $user->email }} an admin? They will be able to send notifications and manage admins.')">
+                                          data-confirm-title="Make this user an admin?"
+                                          data-confirm-message="{{ $user->email }} will be able to send notifications and manage admins."
+                                          data-confirm-button="Make admin">
                                         @csrf @method('PATCH')
                                         <input type="hidden" name="role" value="admin">
-                                        <button class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-100">Make admin</button>
+                                        <button class="adm-btn-outline !h-11 !px-4 !text-sm">Make admin</button>
                                     </form>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-10 text-center text-slate-400">
-                                {{ $search !== '' ? "No user matches \"{$search}\"." : 'No users yet.' }}
+                            <td colspan="6" class="adm-td py-10 text-center text-ink-muted">
+                                {{ $search !== '' ? "No user matches \"{$search}\"." : ($status ? 'Everyone has verified their email.' : 'No users yet.') }}
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        {{ $users->links() }}
-    </div>
-</x-app-layout>
+        @if($users->hasPages())
+            <div class="mt-4">{{ $users->links() }}</div>
+        @endif
+    </section>
+</x-admin-layout>

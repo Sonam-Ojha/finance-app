@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Budget;
-use App\Models\Category;
 use App\Support\ActivityMail;
-use App\Support\Money;
-use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -70,13 +67,7 @@ class BudgetController extends Controller
             throw $e;
         }
 
-        $category = $categoryId ? Category::find($categoryId) : null;
-        $monthName = Carbon::create($year, $month, 1)->format('F Y');
-        ActivityMail::send($user, "Budget set for {$monthName}", 'You set a budget.', [
-            'Month'  => $monthName,
-            'For'    => $category ? trim("{$category->icon} {$category->name}") : 'All spending',
-            'Amount' => Money::inr($budget->amount_minor),
-        ]);
+        ActivityMail::budgetSet($user, $budget);
 
         return response()->json(['data' => $budget->toApiShape()], 201);
     }

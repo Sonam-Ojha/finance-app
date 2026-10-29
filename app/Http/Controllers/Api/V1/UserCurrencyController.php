@@ -61,11 +61,7 @@ class UserCurrencyController extends Controller
         );
 
         if ($custom && $currency->wasRecentlyCreated) {
-            ActivityMail::send($user, "Currency added: {$code}", 'You added a currency.', [
-                'Currency' => "{$currency->label} ({$code})",
-                'Symbol'   => $currency->symbol,
-                'Rate'     => "1 {$code} = ₹" . rtrim(rtrim(number_format((float) $currency->rate, 6, '.', ''), '0'), '.'),
-            ]);
+            ActivityMail::currencyAdded($user, $currency);
         }
 
         return response()->json(['data' => $currency->toApiShape()]);

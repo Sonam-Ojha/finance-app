@@ -32,7 +32,7 @@ class AdminAccessTest extends TestCase
         $this->actingAs($user)->post('/admin/notifications', ['title' => 't', 'body' => 'b', 'audience' => 'all'])->assertForbidden();
 
         $admin = tap($this->admin())->save();
-        $this->actingAs($admin)->get('/admin/users')->assertOk()->assertSee($user->email)->assertSee('Send Notification');
+        $this->actingAs($admin)->get('/admin/users')->assertOk()->assertSee($user->email)->assertSee('Activity log');
         $this->actingAs($admin)->get('/admin/notifications')->assertOk()->assertSee('New notification');
     }
 
