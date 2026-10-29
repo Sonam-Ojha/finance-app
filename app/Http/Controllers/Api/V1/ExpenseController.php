@@ -7,8 +7,10 @@ use App\Models\AppExpense;
 use App\Models\Category;
 use App\Support\ActivityMail;
 use App\Support\BudgetAlertPush;
+use App\Support\ClientIds;
 use App\Support\PaymentMethods;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +41,7 @@ class ExpenseController extends Controller
             'note'           => 'nullable|string|max:120',
             'payment_method' => ['nullable', Rule::in(PaymentMethods::all())],
             'spent_at'       => 'required|date_format:Y-m-d|before_or_equal:' . now()->addDay()->toDateString(),
+            'client_id'      => 'nullable|string|max:64',
         ];
     }
 
@@ -71,19 +74,33 @@ class ExpenseController extends Controller
             'payment_method.in'      => PaymentMethods::MESSAGE,
         ]);
 
+        // An entry the app queued offline carries a client_id, the same on
+        // every resend: one already saved is answered again, not saved twice.
+        $clientId = ClientIds::from($request);
+        if ($saved = ClientIds::find(AppExpense::class, $uid, $clientId)) {
+            return response()->json(['data' => $this->joinedShape($saved->load('category'))]);
+        }
+
         $category = Category::where('id', $request->category_id)->where('user_id', $uid)->first();
         if (! $category) {
             return response()->json(['message' => 'Pick a category for this expense.', 'errors' => ['category_id' => ['Pick a category for this expense.']]], 422);
         }
 
-        $expense = AppExpense::create([
-            'user_id'        => $uid,
-            'amount_minor'   => $request->amount_minor,
-            'category_id'    => $request->category_id,
-            'note'           => $request->note ? (trim($request->note) ?: null) : null,
-            'payment_method' => $request->payment_method,
-            'spent_at'       => $request->spent_at,
-        ]);
+        try {
+            $expense = AppExpense::create([
+                'user_id'        => $uid,
+                'client_id'      => $clientId,
+                'amount_minor'   => $request->amount_minor,
+                'category_id'    => $request->category_id,
+                'note'           => $request->note ? (trim($request->note) ?: null) : null,
+                'payment_method' => $request->payment_method,
+                'spent_at'       => $request->spent_at,
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            // The same entry sent twice at once: the other request saved it.
+            $saved = ClientIds::find(AppExpense::class, $uid, $clientId) ?? throw $e;
+            return response()->json(['data' => $this->joinedShape($saved->load('category'))]);
+        }
 
         ActivityMail::expenseAdded($user, $expense, $category);
         BudgetAlertPush::afterExpense($user, $expense->spent_at);

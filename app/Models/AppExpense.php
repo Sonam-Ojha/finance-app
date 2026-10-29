@@ -8,7 +8,10 @@ class AppExpense extends Model
 {
     protected $table = 'app_expenses';
 
-    protected $fillable = ['user_id', 'amount_minor', 'category_id', 'note', 'payment_method', 'spent_at', 'recurring_entry_id'];
+    protected $fillable = ['user_id', 'client_id', 'amount_minor', 'category_id', 'note', 'payment_method', 'spent_at', 'recurring_entry_id'];
+
+    /** The app's offline-queue id (Api\V1\ExpenseController::store); never sent back. */
+    protected $hidden = ['client_id'];
 
     protected $casts = ['amount_minor' => 'integer', 'spent_at' => 'date'];
 
