@@ -8,13 +8,14 @@
     <title>{{ $title ?? 'Expense Tracker' }}</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|poppins:600,700&display=swap" rel="stylesheet">
-    <link rel="preload" as="image" href="/images/auth-app-home.webp" media="(min-width: 1024px)">
+    <link rel="preload" as="image" type="image/avif" href="/images/login-hero.avif" media="(min-width: 1024px)">
     @include('partials.pwa')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{--
         Sign in, sign up and the other signed-out pages. Wide screens: the
-        brand side (7 of 12 columns) — the app's own Home screen in a phone,
-        on the sidebar navy — and the form (5 of 12). Phones: the form only.
+        brand side (7 of 12 columns) — a photo under a navy wash, the headline
+        and two cards of what the app tells you — and the form (5 of 12).
+        Phones: the form only.
         The tracker's colours (tailwind.config.js), always light. Rules sit
         under .auth so they win over the tracker's .btn-primary/.btn-secondary.
         A page can fill the `title` slot and the `footer` slot (the line under
@@ -37,19 +38,18 @@
         /* ── Brand side ── */
         .auth .auth-visual {
             position: sticky; top: 0; height: 100vh; overflow: hidden;
-            display: flex; flex-direction: column; padding: 44px 56px 0;
-            color: #fff;
-            background:
-                radial-gradient(620px 420px at 85% 8%, rgba(0, 167, 203, .28), rgba(0, 167, 203, 0) 70%),
-                radial-gradient(520px 520px at 10% 100%, rgba(0, 167, 203, .14), rgba(0, 167, 203, 0) 70%),
-                linear-gradient(160deg, #003a7a 0%, #002e62 45%, #001b3d 100%);
+            display: flex; flex-direction: column; padding: 44px 56px 40px;
+            color: #fff; background: #002e62;
         }
-        .auth .auth-visual::before { /* a faint dot grid */
+        .auth .visual-photo, .auth .visual-photo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .auth .visual-photo img { object-fit: cover; object-position: 40% 60%; }
+        .auth .auth-visual::after { /* the navy wash: strong behind the words, lighter over the hands, strong again under the cards */
             content: ''; position: absolute; inset: 0; pointer-events: none;
-            background-image: radial-gradient(rgba(255, 255, 255, .09) 1px, transparent 1px);
-            background-size: 22px 22px;
-            -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 70%); mask-image: linear-gradient(180deg, #000 0%, transparent 70%);
+            background:
+                linear-gradient(180deg, rgba(0, 46, 98, .94) 0%, rgba(0, 46, 98, .78) 30%, rgba(0, 46, 98, .38) 58%, rgba(0, 27, 61, .9) 100%),
+                linear-gradient(90deg, rgba(0, 27, 61, .35), rgba(0, 27, 61, 0) 60%);
         }
+        .auth .auth-visual > :not(.visual-photo) { position: relative; z-index: 1; }
         .auth .visual-brand { position: relative; display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
         .auth .visual-brand img { width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .14); }
         .auth .visual-brand span { font-family: Poppins, Inter, sans-serif; font-size: 19px; font-weight: 700; }
@@ -58,20 +58,12 @@
         .auth .visual-copy h2 span { color: var(--cyan); }
         .auth .visual-copy p { margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: rgba(255, 255, 255, .78); }
 
-        .auth .visual-stage { position: relative; flex: 1; min-height: 0; margin-top: 40px; }
-        .auth .phone {
-            position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-            width: 292px; padding: 10px; border-radius: 48px;
-            background: #0b1220; box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), 0 40px 80px rgba(0, 0, 0, .45);
-        }
-        .auth .phone::before { /* the camera island */
-            content: ''; position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            width: 86px; height: 24px; border-radius: 999px; background: #0b1220; z-index: 1;
-        }
-        .auth .phone img { display: block; width: 100%; height: auto; border-radius: 38px; padding-top: 28px; background: #fff; }
+        .auth .visual-cards { margin-top: auto; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+        .auth .visual-credit { margin: 18px 0 0; font-size: 11px; color: rgba(255, 255, 255, .55); }
+        .auth .visual-credit a { color: inherit; }
 
         .auth .float-card {
-            position: absolute; z-index: 2; width: 236px; padding: 14px 16px;
+            width: 252px; padding: 14px 16px;
             background: #fff; color: var(--ink); border-radius: 16px;
             box-shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 24px 48px rgba(0, 18, 40, .35);
         }
@@ -82,9 +74,6 @@
         .auth .float-card .fc-amount { font-family: Poppins, Inter, sans-serif; font-size: 20px; font-weight: 600; color: var(--navy); line-height: 1.2; }
         .auth .float-card .fc-bar { margin-top: 10px; height: 6px; border-radius: 99px; background: #f1f2f4; overflow: hidden; }
         .auth .float-card .fc-bar span { display: block; height: 100%; width: 80%; border-radius: 99px; background: #f59e0b; }
-        /* Each card tucks about 40px under an edge of the phone (292px wide, centred) */
-        .auth .float-card.is-alert { top: 96px; left: max(16px, calc(50% - 146px - 196px)); }
-        .auth .float-card.is-saved { top: 300px; left: min(calc(100% - 252px), calc(50% + 146px - 40px)); }
         .auth .float-card .fc-head > div, .auth .float-card .fc-sub { white-space: nowrap; }
         .auth .float-card.is-saved .fc-sub { flex: 1; }
         .auth .float-card .fc-up { flex-shrink: 0; white-space: nowrap; font-size: 12px; font-weight: 600; color: #15803d; background: #ecfdf3; border-radius: 999px; padding: 2px 8px; }
@@ -177,6 +166,11 @@
     <div class="auth-split">
 
         <aside class="auth-visual">
+            <picture class="visual-photo">
+                <source srcset="/images/login-hero.avif" type="image/avif">
+                <img src="/images/login-hero.jpg" alt="" width="740" height="493">
+            </picture>
+
             <a href="{{ url('/') }}" class="visual-brand">
                 <img src="/icons/icon-192.png" alt="" width="40" height="40">
                 <span>Expense Tracker</span>
@@ -187,12 +181,8 @@
                 <p>Log what you spend and earn, set budgets, and see where every rupee goes — on the web and on your Android phone.</p>
             </div>
 
-            {{-- The app's real Home screen, and two of the things it tells you --}}
-            <div class="visual-stage" aria-hidden="true">
-                <div class="phone">
-                    <img src="/images/auth-app-home.webp" alt="" width="390" height="844">
-                </div>
-
+            {{-- Two of the things the app tells you --}}
+            <div class="visual-cards" aria-hidden="true">
                 <div class="float-card is-alert">
                     <div class="fc-head">
                         <span class="fc-icon" style="background:#fef3c7; color:#b45309">
@@ -217,6 +207,9 @@
                     <div class="fc-amount" style="margin-top: 8px">₹87,042</div>
                 </div>
             </div>
+
+            {{-- A free Freepik image: their licence asks for this credit --}}
+            <p class="visual-credit">Image by <a href="https://www.freepik.com" target="_blank" rel="noopener nofollow">Freepik</a></p>
         </aside>
 
         <main class="auth-main">
