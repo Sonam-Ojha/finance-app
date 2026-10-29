@@ -32,5 +32,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [\App\Http\Middleware\RejectBlockedUsers::class . ':sanctum']);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // A form left open longer than the session (phones keep tabs for days)
+        // fails its CSRF check. Instead of a bare "419 Page Expired", go back to
+        // a fresh copy of the page and say why; signing out just lands on sign-in.
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() !== 419 || $request->expectsJson()) return null;
+            if ($request->routeIs('logout')) return redirect()->route('login');
+
+            $message = 'That page was open for a long time and expired. Please try again.';
+
+            return back(302, [], route('login'))
+                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'current_password', 'credential']))
+                ->with(auth()->check() ? 'error' : 'status', $message);
+        });
     })->create();

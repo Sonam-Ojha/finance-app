@@ -3,6 +3,10 @@
     <div class="form-title">Account Banao ✨</div>
     <div class="form-subtitle">Join for free and start tracking your finances</div>
 
+    @if (session('status'))
+        <div class="status-msg">{{ session('status') }}</div>
+    @endif
+
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
