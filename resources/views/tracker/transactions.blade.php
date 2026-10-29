@@ -9,7 +9,43 @@
         $advanced = ['category', 'payment', 'min', 'max', 'from', 'to', 'sort'];
         $filtering = $filters['search'] !== '' || $filters['type'] || $filters['count'] > 0;
         $shortMonth = \Carbon\Carbon::parse($month . '-01')->format('M');
+        // The report's month picker: this month and the two years before it.
+        $reportMonths = collect(range(0, 23))->mapWithKeys(function ($i) {
+            $m = \App\Support\Labels::now()->startOfMonth()->subMonths($i);
+            return [$m->format('Y-m') => $m->format('F Y')];
+        });
     @endphp
+
+    <x-slot name="actions">
+        {{-- Export: the list as CSV (with the filters below), or a month's report as PDF --}}
+        <div class="relative" x-data="{ exportOpen: false }" @click.outside="exportOpen = false" @keydown.escape="exportOpen = false">
+            <button type="button" class="btn-secondary" @click="exportOpen = !exportOpen" :aria-expanded="exportOpen" aria-haspopup="true" aria-controls="export-menu">
+                <x-icon name="download" class="w-5 h-5" /> Export <x-icon name="chevron-down" class="w-4 h-4" />
+            </button>
+            <div id="export-menu" x-show="exportOpen" x-cloak x-transition.opacity
+                 class="card !p-3 absolute left-0 sm:left-auto sm:right-0 z-20 mt-2 w-[min(20rem,calc(100vw-2rem))] space-y-3 border border-surface-line dark:border-night-line">
+                <a href="{{ route('transactions.export', request()->query()) }}" class="row-link !px-2 !py-2" @click="exportOpen = false">
+                    <span class="icon-tile"><x-icon name="list" /></span>
+                    <span class="min-w-0">
+                        <span class="block font-semibold strong">CSV (current filters)</span>
+                        <span class="block text-xs muted">{{ $filters['custom_dates'] || $filtering ? 'The list below, every page of it' : 'Everything in ' . $monthLabel }}</span>
+                    </span>
+                </a>
+                <form method="GET" action="{{ route('reports.pdf') }}" class="border-t border-surface-line pt-3 dark:border-night-line">
+                    <label for="report-month" class="field-label px-2">Monthly report PDF</label>
+                    <div class="flex items-center gap-2 px-2 pb-1">
+                        <select id="report-month" name="month" class="input !min-h-10 !py-1.5">
+                            @foreach($reportMonths as $key => $label)
+                                <option value="{{ $key }}" @selected($key === $month)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn-primary !min-h-10 !px-4" @click="exportOpen = false">PDF</button>
+                    </div>
+                    <p class="px-2 text-xs muted">Totals, categories, budgets and every entry.</p>
+                </form>
+            </div>
+        </div>
+    </x-slot>
 
     <div class="space-y-4" x-data="{ filtersOpen: @js(! empty($filterErrors)) }">
 

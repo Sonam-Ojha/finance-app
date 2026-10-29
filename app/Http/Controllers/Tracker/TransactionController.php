@@ -104,8 +104,9 @@ class TransactionController extends Controller
     /**
      * The list's filters from the query string. Bad values are dropped with
      * the message the app's filter sheet shows, rather than failing the page.
+     * Also read by the CSV export (ExportController), so the file matches the list.
      */
-    private function filters(Request $request, DisplayCurrency $money, $categories, string $month): array
+    public function filters(Request $request, DisplayCurrency $money, $categories, string $month): array
     {
         $errors = [];
         $today  = Labels::now()->toDateString();

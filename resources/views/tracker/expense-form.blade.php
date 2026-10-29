@@ -46,6 +46,53 @@
                 @endif
                 @error('category_id')<p class="field-error">{{ $message }}</p>@enderror
             </fieldset>
+
+            {{-- Receipt photo: shrunk in the browser (receiptToDataUri), saved with the form; kept private on the server. --}}
+            <div x-data="{
+                    preview: @js($expense ? \App\Support\Receipts::url($expense) : null),
+                    saved: @js((bool) $expense?->has_receipt),
+                    busy: false,
+                    failed: false,
+                    pick(file) {
+                        if (! file) return;
+                        this.busy = true; this.failed = false;
+                        receiptToDataUri(file)
+                            .then((uri) => { this.$refs.receipt.value = uri; this.$refs.remove.value = ''; this.preview = uri; })
+                            .catch(() => { this.failed = true; })
+                            .finally(() => { this.busy = false; this.$refs.file.value = ''; });
+                    },
+                    clear() {
+                        this.$refs.receipt.value = '';
+                        this.$refs.remove.value = this.saved ? '1' : '';
+                        this.preview = null;
+                    },
+                 }">
+                <span class="field-label">Receipt <span class="font-normal muted">(optional)</span></span>
+                <input type="hidden" name="receipt" x-ref="receipt">
+                <input type="hidden" name="remove_receipt" x-ref="remove">
+                <div class="flex items-center gap-4">
+                    <button type="button" x-show="preview" x-cloak @click="$dispatch('open-photo', { src: preview, name: 'Receipt', contain: true })"
+                            class="flex-shrink-0 rounded-card" aria-label="View the receipt photo">
+                        <img :src="preview" alt="" class="h-20 w-20 rounded-card border border-surface-line object-cover dark:border-night-line">
+                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="btn-secondary !min-h-11 cursor-pointer" :class="busy && 'opacity-50 pointer-events-none'">
+                            <x-icon name="camera" class="w-4 h-4" />
+                            <span x-text="busy ? 'Preparing…' : (preview ? 'Change photo' : '🧾 Add photo')">🧾 Add photo</span>
+                            <input type="file" accept="image/*" class="sr-only" x-ref="file" @change="pick($event.target.files[0])">
+                        </label>
+                        <button type="button" x-show="preview" x-cloak @click="clear()" class="btn-danger-ghost !min-h-11">
+                            <x-icon name="trash" class="w-4 h-4" /> Remove
+                        </button>
+                    </div>
+                </div>
+                <p class="field-error" x-show="failed" x-cloak>Could not use that photo. Try a different one.</p>
+                @error('receipt')
+                    <p class="field-error" x-show="! failed">{{ $message }}</p>
+                @else
+                    <p class="mt-1 text-xs muted" x-show="! failed">A photo of the bill, if you want to keep one. Only you can see it.</p>
+                @enderror
+            </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">

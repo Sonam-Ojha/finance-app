@@ -11,7 +11,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'mobile', 'password', 'pin', 'avatar', 'onboarded', 'currency', 'theme_mode', 'sidebar_color', 'import_completed_at', 'birthday', 'email_notifications', 'google_id', 'apple_id'];
+    protected $fillable = ['name', 'email', 'mobile', 'password', 'pin', 'avatar', 'onboarded', 'currency', 'theme_mode', 'sidebar_color', 'import_completed_at', 'birthday', 'email_notifications', 'google_id', 'apple_id', 'daily_reminder_at', 'budget_alert_push', 'monthly_summary'];
 
     protected $hidden = ['password', 'remember_token', 'pin', 'google_id', 'apple_id'];
 
@@ -24,6 +24,9 @@ class User extends Authenticatable
             'onboarded'           => 'boolean',
             'birthday'            => 'date',
             'email_notifications' => 'boolean',
+            'budget_alert_push'   => 'boolean',
+            'monthly_summary'     => 'boolean',
+            'last_reminded_on'    => 'date',
         ];
     }
 

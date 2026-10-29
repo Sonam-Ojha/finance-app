@@ -57,7 +57,7 @@ class TransactionsTest extends ApiTestCase
             ->assertJsonPath('meta.last_page', 1);
 
         $this->assertSame(
-            ['type', 'id', 'amount_minor', 'date', 'note', 'payment_method', 'category_id', 'category_name', 'category_icon', 'category_color', 'source'],
+            ['type', 'id', 'amount_minor', 'date', 'note', 'payment_method', 'category_id', 'category_name', 'category_icon', 'category_color', 'source', 'has_receipt'],
             array_keys($response->json('data.0')),
         );
 

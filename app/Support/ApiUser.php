@@ -23,6 +23,10 @@ class ApiUser
             'avatar_url'          => Accounts::avatarUrl($user),
             'birthday'            => $user->birthday?->toDateString(),
             'email_notifications' => (bool) ($user->email_notifications ?? true),
+            // Settings › Reminders. A null time means the daily reminder is off.
+            'daily_reminder_at'   => $user->daily_reminder_at,
+            'budget_alert_push'   => (bool) ($user->budget_alert_push ?? true),
+            'monthly_summary'     => (bool) ($user->monthly_summary ?? true),
         ];
     }
 }

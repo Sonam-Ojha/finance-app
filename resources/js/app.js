@@ -236,6 +236,29 @@ window.photoToDataUri = (file) => new Promise((resolve, reject) => {
     image.src = URL.createObjectURL(file);
 });
 
+/* ── Receipt photo ─────────────────────────────────────────────────────
+ * The whole picture (no crop), at most 1600px on its longest side, as a
+ * JPEG data URI — small enough to send with the expense form, sharp enough
+ * to read. The server takes JPEG, PNG or WebP up to 5 MB. */
+window.receiptToDataUri = (file) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+        const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext('2d');
+        // A transparent PNG would turn black as a JPEG.
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(image.src);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    image.onerror = reject;
+    image.src = URL.createObjectURL(file);
+});
+
 window.Alpine = Alpine;
 
 Alpine.start();

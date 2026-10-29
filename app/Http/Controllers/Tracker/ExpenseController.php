@@ -7,8 +7,10 @@ use App\Http\Controllers\Tracker\Concerns\ReadsAmounts;
 use App\Models\AppExpense;
 use App\Models\Category;
 use App\Support\ActivityMail;
+use App\Support\BudgetAlertPush;
 use App\Support\DisplayCurrency;
 use App\Support\PaymentMethods;
+use App\Support\Receipts;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -32,11 +34,15 @@ class ExpenseController extends Controller
     {
         $user  = $request->user();
         $money = DisplayCurrency::for($user);
+        $photo = $this->takeReceipt($request);
         $data  = $this->validated($request, $money, null);
+        $receipt = $photo !== null ? Receipts::decode($photo) : null;
 
         $expense  = AppExpense::create($data + ['user_id' => $user->id]);
+        if ($receipt) Receipts::put($expense, ...$receipt);
         $category = Category::find($expense->category_id);
         ActivityMail::expenseAdded($user, $expense, $category);
+        BudgetAlertPush::afterExpense($user, $expense->spent_at);
 
         return redirect($this->back($request, route('dashboard')))
             ->with('success', 'Expense of ' . $money->format($expense->amount_minor) . " added · {$category->name}")
@@ -47,7 +53,17 @@ class ExpenseController extends Controller
     {
         $this->authorizeOwner($request, $expense);
         $money = DisplayCurrency::for($request->user());
-        $expense->update($this->validated($request, $money, $expense));
+        $photo = $this->takeReceipt($request);
+        $data  = $this->validated($request, $money, $expense);
+        $receipt = $photo !== null ? Receipts::decode($photo) : null;
+
+        $expense->update($data);
+        if ($receipt) {
+            Receipts::put($expense, ...$receipt);
+        } elseif ($request->boolean('remove_receipt')) {
+            Receipts::remove($expense);
+        }
+        BudgetAlertPush::afterExpense($request->user(), $expense->spent_at);
 
         return redirect($this->back($request, route('transactions.index', ['month' => $expense->spent_at->format('Y-m')])))
             ->with('success', 'Expense updated');
@@ -59,6 +75,27 @@ class ExpenseController extends Controller
         $expense->delete();
 
         return redirect($this->back($request, route('transactions.index')))->with('success', 'Expense deleted');
+    }
+
+    /** The receipt photo, for its owner only. */
+    public function receipt(Request $request, AppExpense $expense)
+    {
+        $this->authorizeOwner($request, $expense);
+
+        return Receipts::response($expense);
+    }
+
+    /**
+     * The receipt photo picked on the form (a data URI, shrunk in the
+     * browser by receiptToDataUri), or null. Taken out of the request, so a
+     * form sent back with errors never flashes megabytes into the session.
+     */
+    private function takeReceipt(Request $request): ?string
+    {
+        $photo = $request->input('receipt');
+        $request->request->remove('receipt');
+
+        return is_string($photo) && trim($photo) !== '' ? $photo : null;
     }
 
     private function form(Request $request, ?AppExpense $expense)

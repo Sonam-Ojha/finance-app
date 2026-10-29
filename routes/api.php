@@ -128,9 +128,16 @@ Route::prefix('v1')->group(function () {
         Route::put('settings/currency', [V1Settings::class, 'updateCurrency']);
         Route::put('settings/theme',    [V1Settings::class, 'updateTheme']);
         Route::put('settings/email-notifications', [V1Settings::class, 'updateEmailNotifications']);
+        Route::put('settings/reminders', [V1Settings::class, 'updateReminders']);
 
         // Expenses and incomes together: search, filter, sort, paginate
         Route::get('transactions', [V1Transaction::class, 'index']);
+
+        // Recurring expenses and incomes (recurring:post adds them on their day)
+        Route::get('recurring',               [\App\Http\Controllers\Api\V1\RecurringController::class, 'index']);
+        Route::post('recurring',              [\App\Http\Controllers\Api\V1\RecurringController::class, 'store']);
+        Route::put('recurring/{recurring}',    [\App\Http\Controllers\Api\V1\RecurringController::class, 'update'])->whereNumber('recurring');
+        Route::delete('recurring/{recurring}', [\App\Http\Controllers\Api\V1\RecurringController::class, 'destroy'])->whereNumber('recurring');
 
         // Month-by-month budgets
         Route::get('budgets',             [V1Budget::class, 'index']);
@@ -178,5 +185,39 @@ Route::prefix('v1')->group(function () {
         // Meta & Import
         Route::get('meta',    [V1Meta::class, 'index']);
         Route::post('import', [V1Import::class, 'store']);
+
+        // ── Groups: shared expenses, Splitwise-style (App\Support\Groups) ──
+        // A group the user is not in is a 404.
+        Route::get('groups',           [\App\Http\Controllers\Api\V1\GroupController::class, 'index']);
+        Route::post('groups',          [\App\Http\Controllers\Api\V1\GroupController::class, 'store']);
+        Route::get('groups/{group}',    [\App\Http\Controllers\Api\V1\GroupController::class, 'show'])->whereNumber('group');
+        Route::put('groups/{group}',    [\App\Http\Controllers\Api\V1\GroupController::class, 'update'])->whereNumber('group');
+        Route::delete('groups/{group}', [\App\Http\Controllers\Api\V1\GroupController::class, 'destroy'])->whereNumber('group');
+        Route::post('groups/{group}/members',          [\App\Http\Controllers\Api\V1\GroupController::class, 'addMember'])->whereNumber('group')->middleware('throttle:30,1');
+        Route::delete('groups/{group}/members/{user}', [\App\Http\Controllers\Api\V1\GroupController::class, 'removeMember'])->whereNumber(['group', 'user']);
+        Route::post('groups/{group}/settlements',      [\App\Http\Controllers\Api\V1\GroupController::class, 'settle'])->whereNumber('group');
+        Route::get('groups/{group}/expenses',                [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'index'])->whereNumber('group');
+        Route::post('groups/{group}/expenses',               [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'store'])->whereNumber('group');
+        Route::put('groups/{group}/expenses/{expense}',      [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'update'])->whereNumber(['group', 'expense']);
+        Route::delete('groups/{group}/expenses/{expense}',   [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'destroy'])->whereNumber(['group', 'expense']);
+        // ── end Groups ──
+
+        // ── Exports, receipts, savings goals ──
+        // Files to download (bearer token; the response is the file itself)
+        Route::get('export/transactions.csv', [\App\Http\Controllers\Api\V1\ExportController::class, 'transactions']);
+        Route::get('export/report.pdf',       [\App\Http\Controllers\Api\V1\ExportController::class, 'report']);
+        // An expense's receipt photo: private, the owner's only (App\Support\Receipts)
+        Route::get('expenses/{expense}/receipt',    [\App\Http\Controllers\Api\V1\ReceiptController::class, 'show'])->whereNumber('expense');
+        Route::post('expenses/{expense}/receipt',   [\App\Http\Controllers\Api\V1\ReceiptController::class, 'store'])->whereNumber('expense');
+        Route::delete('expenses/{expense}/receipt', [\App\Http\Controllers\Api\V1\ReceiptController::class, 'destroy'])->whereNumber('expense');
+        // Savings goals and the money in them (App\Support\Goals)
+        Route::get('goals',                       [\App\Http\Controllers\Api\V1\GoalController::class, 'index']);
+        Route::post('goals',                      [\App\Http\Controllers\Api\V1\GoalController::class, 'store']);
+        Route::get('goals/{goal}',                [\App\Http\Controllers\Api\V1\GoalController::class, 'show'])->whereNumber('goal');
+        Route::put('goals/{goal}',                [\App\Http\Controllers\Api\V1\GoalController::class, 'update'])->whereNumber('goal');
+        Route::delete('goals/{goal}',             [\App\Http\Controllers\Api\V1\GoalController::class, 'destroy'])->whereNumber('goal');
+        Route::get('goals/{goal}/contributions',  [\App\Http\Controllers\Api\V1\GoalController::class, 'contributions'])->whereNumber('goal');
+        Route::post('goals/{goal}/contributions', [\App\Http\Controllers\Api\V1\GoalController::class, 'contribute'])->whereNumber('goal');
+        // ── end Exports, receipts, savings goals ──
     });
 });

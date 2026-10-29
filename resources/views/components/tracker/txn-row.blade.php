@@ -7,6 +7,8 @@
     $meta   = array_filter([
         $showDay ? \App\Support\Labels::dayHeading($row['date']) : null,
         \App\Support\PaymentMethods::label($row['payment_method']),
+        // A receipt photo is attached; the expense's page shows it (App\Support\Receipts).
+        ! $income && ($row['has_receipt'] ?? false) ? '🧾 Receipt' : null,
     ]);
     $amount = $money->format($row['amount_minor']);
 @endphp

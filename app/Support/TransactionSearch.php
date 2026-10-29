@@ -60,7 +60,18 @@ class TransactionSearch
             'category_icon'  => $row->category_icon,
             'category_color' => $row->category_color,
             'source'         => $row->source,
+            // A receipt photo on an expense (App\Support\Receipts); always false for an income.
+            'has_receipt'    => (bool) $row->has_receipt,
         ])->values());
+    }
+
+    /**
+     * Every row the filters match, in the same order and shape as a page —
+     * for exports (App\Support\TransactionCsv, App\Support\MonthReport).
+     */
+    public static function all(int $uid, array $filters, int $limit = 50000): \Illuminate\Support\Collection
+    {
+        return collect(self::paginate($uid, $filters, $limit, 1)->items());
     }
 
     private static function expenses(int $uid, array $filters, callable $filled): Builder
@@ -72,6 +83,7 @@ class TransactionSearch
                 DB::raw("'expense' as type"), 'e.id', 'e.amount_minor', 'e.spent_at as date', 'e.note',
                 'e.payment_method', 'e.category_id', 'c.name as category_name', 'c.icon as category_icon',
                 'c.color as category_color', DB::raw('NULL as source'),
+                DB::raw('CASE WHEN e.receipt_path IS NULL THEN 0 ELSE 1 END as has_receipt'),
             ]);
 
         if ($filled('category_id')) $query->where('e.category_id', (int) $filters['category_id']);
@@ -88,6 +100,7 @@ class TransactionSearch
                 DB::raw("'income' as type"), 'i.id', 'i.amount_minor', 'i.received_at as date', 'i.note',
                 'i.payment_method', DB::raw('NULL as category_id'), DB::raw('NULL as category_name'),
                 DB::raw('NULL as category_icon'), DB::raw('NULL as category_color'), 'i.source',
+                DB::raw('0 as has_receipt'),
             ]);
 
         if ($filled('search')) self::search($query, $filters['search'], ['i.source', 'i.note', 'i.payment_method']);

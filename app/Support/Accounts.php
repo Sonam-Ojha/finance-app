@@ -91,6 +91,7 @@ class Accounts
         // Children first, explicitly. Left to the foreign keys, MySQL can try
         // to delete a category before the expenses that restrict it (error
         // 1451), depending on the order it runs the cascades in.
+        $hadReceipts = AppExpense::where('user_id', $user->id)->whereNotNull('receipt_path')->exists();
         DB::transaction(function () use ($user) {
             Budget::where('user_id', $user->id)->delete();
             AppExpense::where('user_id', $user->id)->delete();
@@ -107,5 +108,7 @@ class Accounts
             $path = public_path($user->avatar);
             if (file_exists($path)) unlink($path);
         }
+        // The expenses' receipt photos (their rows went above without model events).
+        if ($hadReceipts) Receipts::deleteAllFor($user);
     }
 }

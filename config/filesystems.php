@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        // Receipt photos: private, served only to their owner through an
+        // owner-checked route (App\Support\Receipts). No `serve`, no URL.
+        'receipts' => [
+            'driver' => 'local',
+            'root' => storage_path('app/receipts'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

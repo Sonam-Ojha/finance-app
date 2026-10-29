@@ -45,6 +45,14 @@ class SettingsController extends Controller
         return response()->noContent();
     }
 
+    /** Settings › Reminders, as the website saves them; any subset of the three fields. */
+    public function updateReminders(Request $request)
+    {
+        $request->user()->update(\App\Http\Controllers\Tracker\SettingsController::reminderChanges($request));
+
+        return response()->json(['data' => \App\Support\ApiUser::payload($request->user()->fresh())]);
+    }
+
     public function currencies()
     {
         return response()->json(['data' => Currencies::list()]);

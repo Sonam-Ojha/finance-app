@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppExpense;
 use App\Models\Category;
 use App\Support\ActivityMail;
+use App\Support\BudgetAlertPush;
 use App\Support\PaymentMethods;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -25,6 +26,8 @@ class ExpenseController extends Controller
             'category_name'  => $expense->category->name,
             'category_icon'  => $expense->category->icon,
             'category_color' => $expense->category->color,
+            // The photo itself is GET /expenses/{id}/receipt (ReceiptController).
+            'has_receipt'    => $expense->has_receipt,
         ];
     }
 
@@ -83,6 +86,7 @@ class ExpenseController extends Controller
         ]);
 
         ActivityMail::expenseAdded($user, $expense, $category);
+        BudgetAlertPush::afterExpense($user, $expense->spent_at);
 
         return response()->json(['data' => $this->joinedShape($expense->load('category'))], 201);
     }
@@ -97,6 +101,7 @@ class ExpenseController extends Controller
             'note'           => $expense->note,
             'payment_method' => $expense->payment_method,
             'spent_at'       => $expense->spent_at->toDateString(),
+            'has_receipt'    => $expense->has_receipt,
         ]]);
     }
 
@@ -127,6 +132,7 @@ class ExpenseController extends Controller
             $changes['payment_method'] = $request->payment_method;
         }
         $expense->update($changes);
+        BudgetAlertPush::afterExpense($request->user(), $expense->spent_at);
 
         return response()->json(['data' => $this->joinedShape($expense->load('category'))]);
     }

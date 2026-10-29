@@ -101,6 +101,7 @@ class HomeController extends Controller
             'date' => $e->spent_at->toDateString(), 'note' => $e->note, 'payment_method' => $e->payment_method,
             'category_id' => $e->category_id, 'category_name' => $e->category->name,
             'category_icon' => $e->category->icon, 'category_color' => $e->category->color, 'source' => null,
+            'has_receipt' => $e->has_receipt,
         ])->concat($incomes->map(fn (AppIncome $i) => [
             'type' => 'income', 'id' => $i->id, 'amount_minor' => $i->amount_minor,
             'date' => $i->received_at->toDateString(), 'note' => $i->note, 'payment_method' => $i->payment_method,

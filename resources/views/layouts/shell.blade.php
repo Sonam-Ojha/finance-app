@@ -34,13 +34,18 @@
         // The app's tabs and screens, in its order.
         ['dashboard', 'Home', 'home', ['dashboard']],
         ['transactions.index', 'Transactions', 'list', ['transactions.*', 'expenses.*', 'incomes.*']],
+        ['recurring.index', 'Recurring', 'arrow-path', ['recurring.*']],
         ['analytics.index', 'Analytics', 'chart', ['analytics.*']],
         ['budgets.index', 'Budgets', 'wallet', ['budgets.*']],
+        ['goals.index', 'Goals', 'flag', ['goals.*']],
+        ['groups.index', 'Groups', 'users', ['groups.*']],
         ['categories.index', 'Categories', 'tag', ['categories.*']],
         ['notifications.index', 'Notifications', 'bell', ['notifications.*']],
         ['settings.index', 'Settings', 'cog', ['settings.*', 'currency.*', 'about', 'profile.*', 'account.*']],
     ];
-    $mobileTabs = $admin ? [] : [$nav[0], $nav[1], $nav[2], $nav[6]];
+    // The phone's bottom tabs, picked by route so new sidebar links never shift them.
+    $tabRoutes = ['dashboard', 'transactions.index', 'analytics.index', 'settings.index'];
+    $mobileTabs = $admin ? [] : array_values(array_filter($nav, fn ($item) => in_array($item[0], $tabRoutes, true)));
     $alerts = $admin ? 0 : $overBudget;
 @endphp
 <!DOCTYPE html>
@@ -271,7 +276,9 @@
     <div x-show="photo" x-cloak x-transition.opacity class="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4" @click.self="close()"
          role="dialog" aria-modal="true" :aria-label="photo ? 'Photo of ' + photo.name : ''">
         <figure class="relative">
-            <img :src="photo?.src" :alt="photo ? 'Photo of ' + photo.name : ''" class="h-[min(80vw,360px)] w-[min(80vw,360px)] rounded-card bg-white object-cover">
+            {{-- { contain: true } shows the whole picture (receipts) instead of a square crop. --}}
+            <img :src="photo?.src" :alt="photo ? 'Photo of ' + photo.name : ''" class="rounded-card bg-white"
+                 :class="photo?.contain ? 'h-auto max-h-[80vh] w-auto max-w-[90vw] object-contain' : 'h-[min(80vw,360px)] w-[min(80vw,360px)] object-cover'">
             <figcaption class="mt-3 text-center text-sm font-semibold text-white" x-text="photo?.name"></figcaption>
             <button type="button" x-ref="close" @click="close()" aria-label="Close photo"
                     class="absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink hover:bg-surface-page">
