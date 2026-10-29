@@ -1,7 +1,7 @@
 <x-guest-layout>
 
-    <div class="form-title">Account Banao ✨</div>
-    <div class="form-subtitle">Join for free and start tracking your finances</div>
+    <div class="form-title">Create your account</div>
+    <div class="form-subtitle">It is free, and it takes a minute.</div>
 
     @if (session('status'))
         <div class="status-msg">{{ session('status') }}</div>
@@ -12,7 +12,7 @@
 
         {{-- Name --}}
         <div class="field-group">
-            <label class="field-label">Full Name</label>
+            <label class="field-label" for="name">Name</label>
             <div class="field-wrap">
                 <input type="text" name="name" id="name"
                        value="{{ old('name') }}"
@@ -30,7 +30,7 @@
 
         {{-- Email --}}
         <div class="field-group">
-            <label class="field-label">Email Address</label>
+            <label class="field-label" for="email">Email</label>
             <div class="field-wrap">
                 <input type="email" name="email" id="email"
                        value="{{ old('email') }}"
@@ -48,7 +48,7 @@
 
         {{-- Date of birth: required for a new account (at least 1, at most 120 years old) --}}
         <div class="field-group">
-            <label class="field-label" for="birthday">Date of Birth</label>
+            <label class="field-label" for="birthday">Date of birth</label>
             <div class="field-wrap">
                 <input type="date" name="birthday" id="birthday"
                        value="{{ old('birthday') }}"
@@ -62,11 +62,11 @@
 
         {{-- Password --}}
         <div class="field-group">
-            <label class="field-label">Password</label>
+            <label class="field-label" for="password">Password</label>
             <div class="field-wrap">
                 <input type="password" name="password" id="password"
                        required autocomplete="new-password"
-                       placeholder="Min 8 characters"
+                       placeholder="At least 8 characters"
                        class="field-input {{ $errors->has('password') ? 'is-error' : '' }}">
                 <span class="field-icon">
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -79,7 +79,7 @@
 
         {{-- Confirm Password --}}
         <div class="field-group">
-            <label class="field-label">Confirm Password</label>
+            <label class="field-label" for="password_confirmation">Confirm password</label>
             <div class="field-wrap">
                 <input type="password" name="password_confirmation" id="password_confirmation"
                        required autocomplete="new-password"
@@ -94,18 +94,18 @@
             @error('password_confirmation')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
-        <button type="submit" class="btn-primary" style="margin-top:4px">Create Account &rarr;</button>
+        <button type="submit" class="btn-primary" style="margin-top:4px">Create account</button>
 
         {{-- Security: Continue with Google --}}
         @include('auth.partials.google-button', ['context' => 'signup'])
 
         <div class="divider">
             <div class="divider-line"></div>
-            <span class="divider-text">ALREADY A MEMBER?</span>
+            <span class="divider-text">Have an account?</span>
             <div class="divider-line"></div>
         </div>
 
-        <a href="{{ route('login') }}" class="btn-secondary">Already have an account? Sign In &rarr;</a>
+        <a href="{{ route('login') }}" class="btn-secondary">Sign in</a>
     </form>
 
 </x-guest-layout>

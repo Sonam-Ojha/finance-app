@@ -1,6 +1,6 @@
 {{-- The 6-digit code page (Auth\EmailCodeController). Every signed-in page sends an unverified account here. --}}
 <x-guest-layout>
-    <div class="form-title">Check your email ✉️</div>
+    <div class="form-title">Check your email</div>
     <div class="form-subtitle">We sent a 6-digit code to <strong>{{ $email }}</strong>. Type it below to confirm the address is yours.</div>
 
     @if (session('status'))
@@ -20,14 +20,14 @@
                    style="padding-left: 14px; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: .5em;">
             @error('code')<div class="field-error">{{ $message }}</div>@enderror
         </div>
-        <button type="submit" class="btn-primary">Verify email &rarr;</button>
+        <button type="submit" class="btn-primary">Verify email</button>
     </form>
 
     {{-- Another code: at most one a minute --}}
     <form method="POST" action="{{ route('verification.send') }}" style="margin-top: 16px; text-align: center;"
           x-data="{ wait: {{ (int) $retryAfter }} }" x-init="const t = setInterval(() => { if (wait > 0) wait--; else clearInterval(t) }, 1000)">
         @csrf
-        <span style="font-size: 13px; color: #64748b;">Did not get it? Check Spam, or</span>
+        <span style="font-size: 13px; color: var(--muted);">Did not get it? Check Spam, or</span>
         <button type="submit" class="forgot-link" style="background: none; border: 0; cursor: pointer;" :disabled="wait > 0" :style="wait > 0 && 'opacity:.5;cursor:default'">
             <span x-show="wait === 0">send a new code</span>
             <span x-show="wait > 0" x-cloak>send again in <span x-text="wait"></span>s</span>
@@ -36,7 +36,7 @@
 
     <div class="divider">
         <div class="divider-line"></div>
-        <span class="divider-text">WRONG EMAIL?</span>
+        <span class="divider-text">Wrong email?</span>
         <div class="divider-line"></div>
     </div>
 

@@ -1,25 +1,29 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
+    <div class="form-title">Forgot your password?</div>
+    <div class="form-subtitle">Type your email and we will send you a link to choose a new one.</div>
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    @if (session('status'))
+        <div class="status-msg" role="status">{{ session('status') }}</div>
+    @endif
 
     <form method="POST" action="{{ route('password.email') }}">
         @csrf
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <div class="field-group">
+            <label class="field-label" for="email">Email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                   placeholder="your@email.com" class="field-input {{ $errors->has('email') ? 'is-error' : '' }}" style="padding-right: 14px;">
+            @error('email')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="btn-primary">Email me a reset link</button>
     </form>
+
+    <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">Remembered it?</span>
+        <div class="divider-line"></div>
+    </div>
+
+    <a href="{{ route('login') }}" class="btn-secondary">Back to sign in</a>
 </x-guest-layout>

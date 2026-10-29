@@ -68,7 +68,7 @@ class BirthdayRequiredTest extends TestCase
             $this->get($page)->assertRedirect(route('profile.complete'));
         }
         $this->post('/expenses', [])->assertRedirect(route('profile.complete'));
-        $this->get('/complete-profile')->assertOk()->assertSee('Date of Birth');
+        $this->get('/complete-profile')->assertOk()->assertSee('Date of birth');
 
         // The email-code page stays open (an unverified account is sent there first).
         $user->forceFill(['email_verified_at' => null])->save();

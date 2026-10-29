@@ -8,7 +8,7 @@
         @method('PUT')
 
         <div class="field-group">
-            <label class="field-label" for="birthday">Date of Birth</label>
+            <label class="field-label" for="birthday">Date of birth</label>
             <div class="field-wrap">
                 <input type="date" name="birthday" id="birthday"
                        value="{{ old('birthday') }}"
@@ -21,14 +21,14 @@
             @error('birthday')<div class="field-error" id="birthday-error" role="alert">{{ $message }}</div>@enderror
         </div>
 
-        <button type="submit" class="btn-primary">Continue &rarr;</button>
+        <button type="submit" class="btn-primary">Continue</button>
     </form>
 
     <form method="POST" action="{{ route('logout') }}">
         @csrf
         <div class="divider">
             <div class="divider-line"></div>
-            <span class="divider-text">NOT YOU?</span>
+            <span class="divider-text">Not you?</span>
             <div class="divider-line"></div>
         </div>
         <button type="submit" class="btn-secondary" style="cursor:pointer; font-family:inherit">Sign out</button>

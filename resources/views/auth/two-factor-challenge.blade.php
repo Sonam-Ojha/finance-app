@@ -25,11 +25,11 @@
             @error('code')<div class="field-error" id="code-error" role="alert">{{ $message }}</div>@enderror
         </div>
 
-        <button type="submit" class="btn-primary">Verify &rarr;</button>
+        <button type="submit" class="btn-primary">Verify</button>
 
         <div class="divider">
             <div class="divider-line"></div>
-            <span class="divider-text">NOT YOU?</span>
+            <span class="divider-text">Not you?</span>
             <div class="divider-line"></div>
         </div>
 

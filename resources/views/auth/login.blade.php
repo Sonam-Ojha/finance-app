@@ -1,7 +1,7 @@
 <x-guest-layout>
 
-    <div class="form-title">Welcome back! 👋</div>
-    <div class="form-subtitle">Sign in to your account</div>
+    <div class="form-title">Welcome back</div>
+    <div class="form-subtitle">Sign in to see where your money went.</div>
 
     @if (session('status'))
         <div class="status-msg">{{ session('status') }}</div>
@@ -12,7 +12,7 @@
 
         {{-- Email --}}
         <div class="field-group">
-            <label class="field-label">Email Address</label>
+            <label class="field-label" for="email">Email</label>
             <div class="field-wrap">
                 <input type="email" name="email" id="email"
                        value="{{ old('email') }}"
@@ -30,7 +30,7 @@
 
         {{-- Password --}}
         <div class="field-group">
-            <label class="field-label">Password</label>
+            <label class="field-label" for="password">Password</label>
             <div class="field-wrap">
                 <input type="password" name="password" id="password"
                        required autocomplete="current-password"
@@ -56,19 +56,19 @@
             @endif
         </div>
 
-        <button type="submit" class="btn-primary">Sign In &rarr;</button>
+        <button type="submit" class="btn-primary">Sign in</button>
 
         {{-- Security: Continue with Google --}}
         @include('auth.partials.google-button', ['context' => 'signin'])
 
         <div class="divider">
             <div class="divider-line"></div>
-            <span class="divider-text">NEW USER?</span>
+            <span class="divider-text">New here?</span>
             <div class="divider-line"></div>
         </div>
 
         <a href="{{ route('register') }}" class="btn-secondary">
-            Create a new account &rarr;
+            Create an account
         </a>
     </form>
 
