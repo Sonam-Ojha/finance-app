@@ -132,7 +132,7 @@ foreach ([
     'investment'                   => ['goals.index', []],
     'bad-debt'                     => ['groups.index', []],        // who owes whom
     'contact'                      => ['groups.index', []],
-    'reminder'                     => ['settings.index', []],      // Settings › Reminders
+    'reminder'                     => ['settings.reminders.edit', []], // Settings › Reminders
     'report/generate'              => ['reports.pdf', []],         // its month and year carry over
     'report'                       => ['analytics.index', []],
     'settings/masters'             => ['settings.index', []],
