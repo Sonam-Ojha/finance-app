@@ -48,7 +48,7 @@ See the whole month
 
 <x-slot:subcopy>
 <x-mail::subcopy>
-You get this summary on the 1st of every month. Turn it off in Settings → Reminders.
+You get this summary on the 1st of every month.
 </x-mail::subcopy>
 </x-slot:subcopy>
 

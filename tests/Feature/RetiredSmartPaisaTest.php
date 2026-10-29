@@ -55,7 +55,7 @@ class RetiredSmartPaisaTest extends TestCase
             '/cashback'                       => '/transactions?type=income',
             '/bad-debt'                       => '/groups',
             '/contact/7'                      => '/groups',
-            '/reminder'                       => '/settings/reminders',
+            '/reminder'                       => '/settings',
             '/report'                         => '/analytics',
             '/settings/masters'               => '/settings',
         ];

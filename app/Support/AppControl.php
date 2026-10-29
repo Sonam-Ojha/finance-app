@@ -17,6 +17,20 @@ class AppControl
     public const UPDATE_MESSAGE = 'update_message';
     public const EMAIL_VERIFICATION = 'email_verification_required';
 
+    /*
+     * The messages the server sends on its own. Everyone gets them; only an
+     * admin can switch one off. Stored as `false` when off, so a missing key
+     * means on.
+     */
+    public const DAILY_REMINDER = 'daily_reminder';
+    public const DAILY_REMINDER_AT = 'daily_reminder_at';
+    public const BUDGET_ALERT_PUSH = 'budget_alert_push';
+    public const MONTHLY_SUMMARY = 'monthly_summary';
+    public const BIRTHDAY_WISHES = 'birthday_wishes';
+
+    /** 9 p.m. India time, after most of the day's spending. */
+    public const DEFAULT_REMINDER_AT = '21:00';
+
     public const DEFAULT_MAINTENANCE_MESSAGE = 'Expense Tracker is getting an upgrade. We will be back shortly — your data is safe.';
 
     public const DEFAULT_UPDATE_MESSAGE = 'This version of Expense Tracker is no longer supported. Update the app to carry on.';
@@ -72,6 +86,29 @@ class AppControl
     public static function emailVerificationSetHere(): bool
     {
         return AppSettings::has(self::EMAIL_VERIFICATION);
+    }
+
+    /** The daily reminder's time ("21:00", India time), or null while it is off. */
+    public static function dailyReminderAt(): ?string
+    {
+        if (AppSettings::get(self::DAILY_REMINDER) === false) return null;
+
+        return AppSettings::get(self::DAILY_REMINDER_AT, self::DEFAULT_REMINDER_AT);
+    }
+
+    public static function budgetAlertPush(): bool
+    {
+        return AppSettings::get(self::BUDGET_ALERT_PUSH) !== false;
+    }
+
+    public static function monthlySummary(): bool
+    {
+        return AppSettings::get(self::MONTHLY_SUMMARY) !== false;
+    }
+
+    public static function birthdayWishes(): bool
+    {
+        return AppSettings::get(self::BIRTHDAY_WISHES) !== false;
     }
 
     /**

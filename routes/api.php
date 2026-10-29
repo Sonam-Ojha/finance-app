@@ -78,7 +78,7 @@ Route::prefix('v1')->group(function () {
         Route::put('settings/currency', [V1Settings::class, 'updateCurrency']);
         Route::put('settings/theme',    [V1Settings::class, 'updateTheme']);
         Route::put('settings/email-notifications', [V1Settings::class, 'updateEmailNotifications']);
-        Route::put('settings/reminders', [V1Settings::class, 'updateReminders']);
+        // The reminders are Admin › App control's now (App\Support\AppControl); users cannot turn them off.
 
         // Expenses and incomes together: search, filter, sort, paginate
         Route::get('transactions', [V1Transaction::class, 'index']);

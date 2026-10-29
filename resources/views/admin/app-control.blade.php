@@ -124,6 +124,69 @@
             @endif
         </section>
 
+        {{-- Reminders and other messages the server sends on its own --}}
+        <section class="adm-card flex flex-col gap-4 lg:col-span-2">
+            <div>
+                <h2 class="adm-h2">Reminders and automatic messages</h2>
+                <p class="adm-caption mt-1">Sent to everyone on their own. Users cannot turn these off; only you can, here. Pushes reach phones with the app installed and notifications allowed.</p>
+            </div>
+            @php
+                $times = collect(range(6 * 2, 23 * 2 + 1))->mapWithKeys(fn ($half) => [
+                    sprintf('%02d:%02d', intdiv($half, 2), $half % 2 * 30) => \Carbon\Carbon::createFromTime(intdiv($half, 2), $half % 2 * 30)->format('g:i A'),
+                ]);
+                $rows = [
+                    [\App\Support\AppControl::BUDGET_ALERT_PUSH, 'Budget alerts', 'A push when a budget is 80% used, and again when it is used up.', 'warning'],
+                    [\App\Support\AppControl::MONTHLY_SUMMARY, 'Monthly summary email', 'On the 1st: last month’s money in, spending and budgets.', 'envelope'],
+                    [\App\Support\AppControl::BIRTHDAY_WISHES, 'Birthday wishes', 'A push and an email on the user’s birthday, from 9 AM.', 'calendar'],
+                ];
+            @endphp
+            <div class="grid gap-3 md:grid-cols-2">
+                {{-- The daily reminder: a switch and its time --}}
+                <div class="flex flex-col gap-3 rounded-card border border-surface-line p-4 dark:border-night-line">
+                    <div class="flex items-start gap-3">
+                        <span class="icon-tile"><x-icon name="bell" /></span>
+                        <div class="min-w-0 flex-1">
+                            <p id="daily-reminder-label" class="font-semibold">Daily reminder</p>
+                            <p class="adm-caption">“Logged today’s spending?” — a push to anyone who has not added an expense that day.</p>
+                        </div>
+                        <form method="POST" action="{{ route('admin.app-control.reminders') }}">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="daily_reminder" value="{{ $reminderAt ? 0 : 1 }}">
+                            <button type="submit" role="switch" aria-checked="{{ $reminderAt ? 'true' : 'false' }}" aria-labelledby="daily-reminder-label" class="adm-switch"><span></span></button>
+                        </form>
+                    </div>
+                    @if($reminderAt)
+                        <form method="POST" action="{{ route('admin.app-control.reminders') }}" class="flex items-center gap-3 border-t border-surface-page pt-3 dark:border-night-line">
+                            @csrf @method('PUT')
+                            <label for="daily_reminder_at" class="flex-1 text-sm font-semibold">Time (India)</label>
+                            <select id="daily_reminder_at" name="daily_reminder_at" onchange="this.form.submit()" class="adm-input !h-10 !w-auto !py-1 text-sm" style="padding-right: 2.25rem">
+                                @foreach($times->union([$savedReminderAt => \Carbon\Carbon::createFromFormat('H:i', $savedReminderAt)->format('g:i A')])->sortKeys() as $value => $label)
+                                    <option value="{{ $value }}" @selected($value === $savedReminderAt)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                        @error('daily_reminder_at')<p class="text-[13px] text-status-error">{{ $message }}</p>@enderror
+                    @endif
+                </div>
+
+                @foreach($rows as [$key, $label, $hint, $icon])
+                    @php $on = $autoMessages[$key]; @endphp
+                    <div class="flex items-start gap-3 rounded-card border border-surface-line p-4 dark:border-night-line">
+                        <span class="icon-tile"><x-icon :name="$icon" /></span>
+                        <div class="min-w-0 flex-1">
+                            <p id="{{ $key }}-label" class="font-semibold">{{ $label }}</p>
+                            <p class="adm-caption">{{ $hint }}</p>
+                        </div>
+                        <form method="POST" action="{{ route('admin.app-control.reminders') }}">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="{{ $key }}" value="{{ $on ? 0 : 1 }}">
+                            <button type="submit" role="switch" aria-checked="{{ $on ? 'true' : 'false' }}" aria-labelledby="{{ $key }}-label" class="adm-switch"><span></span></button>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
         {{-- What the app reads --}}
         <section class="adm-card flex flex-col gap-3">
             <div>

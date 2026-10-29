@@ -35,12 +35,6 @@ class SettingsController extends Controller
         return view('tracker.appearance', ['theme' => $request->user()->theme_mode ?: 'light']);
     }
 
-    /** Settings › Reminders: the daily push, budget alert pushes and the monthly summary email. */
-    public function reminders(Request $request)
-    {
-        return view('tracker.reminders', ['user' => $request->user()]);
-    }
-
     public function updateTheme(Request $request)
     {
         $request->validate(['theme_mode' => 'required|in:light,dark,system']);
@@ -57,35 +51,6 @@ class SettingsController extends Controller
 
         return redirect()->back(302, [], route('settings.appearance'))
             ->with('success', 'Sidebar colour set to ' . SidebarColors::ALL[$request->sidebar_color][0] . '.');
-    }
-
-    /**
-     * Settings › Reminders: the evening reminder's time (or off), budget
-     * alert pushes and the monthly summary email. Each form sends one field.
-     */
-    public function updateReminders(Request $request)
-    {
-        $request->user()->update(self::reminderChanges($request));
-
-        return back()->with('success', 'Reminders saved');
-    }
-
-    /** The reminder fields a request carries, validated; the API uses this too. */
-    public static function reminderChanges(Request $request): array
-    {
-        $request->validate([
-            'daily_reminder_at' => 'sometimes|nullable|date_format:H:i',
-            'budget_alert_push' => 'sometimes|boolean',
-            'monthly_summary'   => 'sometimes|boolean',
-        ], ['daily_reminder_at.date_format' => 'Pick a time for the reminder.']);
-
-        $changes = [];
-        if ($request->has('daily_reminder_at')) $changes['daily_reminder_at'] = $request->input('daily_reminder_at') ?: null;
-        foreach (['budget_alert_push', 'monthly_summary'] as $field) {
-            if ($request->has($field)) $changes[$field] = $request->boolean($field);
-        }
-
-        return $changes;
     }
 
     /** The per-user switch for the activity emails. */

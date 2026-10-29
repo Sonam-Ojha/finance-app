@@ -47,7 +47,7 @@ class PostRecurringEntries extends Command
                 }
                 // A budget alert for this month, if a recurring expense just crossed a line.
                 $thisMonth = $today->format('Y-m');
-                if ($rule->kind === 'expense' && isset($months[$thisMonth]) && $rule->user && $rule->user->budget_alert_push !== false) {
+                if ($rule->kind === 'expense' && isset($months[$thisMonth]) && $rule->user && \App\Support\AppControl::budgetAlertPush()) {
                     BudgetAlertPush::check($rule->user, $thisMonth);
                 }
             });

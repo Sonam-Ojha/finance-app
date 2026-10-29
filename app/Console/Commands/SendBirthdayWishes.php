@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Notifications\BirthdayWish;
+use App\Support\AppControl;
 use App\Support\Labels;
 use App\Support\UserPush;
 use Illuminate\Console\Command;
@@ -12,7 +13,7 @@ use Throwable;
 /**
  * "Happy birthday" by push and email, once a year, from 9 a.m. India time on
  * the user's birthday. A 29 February birthday is wished on the 28th in other
- * years.
+ * years. Admin › App control can switch it off.
  */
 class SendBirthdayWishes extends Command
 {
@@ -24,6 +25,7 @@ class SendBirthdayWishes extends Command
 
     public function handle(): int
     {
+        if (! AppControl::birthdayWishes()) return self::SUCCESS;
         $now = Labels::now();
         if ($now->hour < self::FROM_HOUR) return self::SUCCESS;
 

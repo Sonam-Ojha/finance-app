@@ -8,6 +8,8 @@ use App\Models\Budget;
 use App\Models\User;
 use App\Notifications\BirthdayWish;
 use App\Notifications\MonthlySummaryMail;
+use App\Support\AppControl;
+use App\Support\AppSettings;
 use App\Support\DefaultCategories;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -75,16 +77,22 @@ class RemindersTest extends TestCase
         $this->assertCount(2, $this->pushes());
     }
 
-    public function test_no_budget_push_for_an_old_month_or_when_turned_off(): void
+    public function test_no_budget_push_for_an_old_month_or_when_an_admin_turns_them_off(): void
     {
         Budget::create(['user_id' => $this->user->id, 'category_id' => null, 'year' => 2026, 'month' => 9, 'amount_minor' => 100000]);
         $this->spend(5000, day: '2026-09-15');
         $this->assertSame([], $this->pushes());
 
+        // A user who switched them off under the old Settings › Reminders gets them anyway.
         $this->category('Groceries')->update(['budget_minor' => 100000]);
-        $this->user->update(['budget_alert_push' => false]);
-        $this->spend(2000, 'Groceries');
-        $this->assertSame([], $this->pushes());
+        $this->user->forceFill(['budget_alert_push' => false])->save();
+        $this->spend(900, 'Groceries');
+        $this->assertCount(1, $this->pushes());
+
+        // Only Admin › App control switches them off, for everyone.
+        AppSettings::set(AppControl::BUDGET_ALERT_PUSH, false);
+        $this->spend(200, 'Groceries');
+        $this->assertCount(1, $this->pushes());
     }
 
     public function test_the_daily_reminder_goes_at_nine_to_those_who_logged_nothing(): void
@@ -93,8 +101,9 @@ class RemindersTest extends TestCase
         $this->phone($busy, 'busy-phone');
         DefaultCategories::seed($busy);
         AppExpense::create(['user_id' => $busy->id, 'amount_minor' => 100, 'category_id' => $busy->categories()->first()->id, 'spent_at' => '2026-10-29']);
-        $off = User::factory()->create(['daily_reminder_at' => null]);
-        $this->phone($off, 'off-phone');
+        // Turned off under the old Settings › Reminders: reminded all the same.
+        $old = User::factory()->create(['daily_reminder_at' => null]);
+        $this->phone($old, 'old-phone');
 
         $this->travelTo($this->india('2026-10-29 20:59'));
         $this->artisan('reminders:daily');
@@ -103,13 +112,20 @@ class RemindersTest extends TestCase
         $this->travelTo($this->india('2026-10-29 21:00'));
         $this->artisan('reminders:daily');
         $this->artisan('reminders:daily'); // the same minute again: no repeat
-        $this->assertSame(['Logged today’s spending? ✍️'], array_column($this->pushes(), 'title'));
+        $this->assertSame(['Logged today’s spending? ✍️', 'Logged today’s spending? ✍️'], array_column($this->pushes(), 'title'));
 
-        // Too late in the evening for a reminder that was missed.
-        $this->user->forceFill(['last_reminded_on' => null, 'daily_reminder_at' => '18:00'])->save();
+        // An admin moves it to 6 PM: by 9:30 PM a missed one is too late.
+        AppSettings::set(AppControl::DAILY_REMINDER_AT, '18:00');
+        $this->user->forceFill(['last_reminded_on' => null])->save();
         $this->travelTo($this->india('2026-10-29 21:30'));
         $this->artisan('reminders:daily');
-        $this->assertCount(1, $this->pushes());
+        $this->assertCount(2, $this->pushes());
+
+        // Switched off in Admin › App control: nobody, the next evening.
+        AppSettings::set(AppControl::DAILY_REMINDER, false);
+        $this->travelTo($this->india('2026-10-30 18:00'));
+        $this->artisan('reminders:daily');
+        $this->assertCount(2, $this->pushes());
     }
 
     public function test_a_birthday_is_wished_once_by_push_and_email(): void
@@ -126,6 +142,12 @@ class RemindersTest extends TestCase
         $this->artisan('birthdays:wish');
         $this->assertSame(['Happy birthday, Asha! 🎂'], array_column($this->pushes(), 'title'));
         Notification::assertSentToTimes($this->user, BirthdayWish::class, 1);
+
+        // Switched off in Admin › App control: no wishes next year.
+        AppSettings::set(AppControl::BIRTHDAY_WISHES, false);
+        $this->travelTo($this->india('2027-10-29 10:00'));
+        $this->artisan('birthdays:wish');
+        Notification::assertSentToTimes($this->user, BirthdayWish::class, 1);
     }
 
     public function test_the_monthly_summary_sums_up_last_month_on_the_first(): void
@@ -136,7 +158,8 @@ class RemindersTest extends TestCase
         }
         AppIncome::create(['user_id' => $this->user->id, 'amount_minor' => 5000000, 'source' => 'Salary', 'received_at' => '2026-10-01']);
         $quiet = User::factory()->create(); // nothing recorded: nothing to sum up
-        $optedOut = User::factory()->create(['monthly_summary' => false]);
+        // Turned off under the old Settings › Reminders: gets it all the same.
+        $this->user->forceFill(['monthly_summary' => false])->save();
 
         $this->travelTo($this->india('2026-11-01 08:00'));
         $this->artisan('summary:monthly');
@@ -156,25 +179,50 @@ class RemindersTest extends TestCase
                 && $s['over'] === ['Transport went ₹500.00 over its ₹1,000.00 budget.']
                 && str_contains($html, '₹46,500.00') && str_contains($html, 'Every budget held') === false;
         });
-        Notification::assertNotSentTo([$quiet, $optedOut], MonthlySummaryMail::class);
+        Notification::assertNotSentTo($quiet, MonthlySummaryMail::class);
+
+        // Switched off in Admin › App control: nothing the next month.
+        AppSettings::set(AppControl::MONTHLY_SUMMARY, false);
+        $this->travelTo($this->india('2026-12-01 10:00'));
+        $this->artisan('summary:monthly');
+        Notification::assertSentToTimes($this->user, MonthlySummaryMail::class, 1);
     }
 
-    public function test_reminder_settings_on_the_website_and_in_the_app(): void
+    public function test_users_cannot_turn_the_reminders_off(): void
     {
-        // One row in Settings (new accounts start at 9 PM); the switches live on their own page.
-        $this->user->refresh();
-        $this->actingAs($this->user)->get('/settings')->assertOk()->assertSee('Reminders')->assertSee('9:00 PM')->assertDontSee('Monthly summary email');
-        $this->actingAs($this->user)->get('/settings/reminders')->assertOk()->assertSee('Daily reminder')->assertSee('Monthly summary email');
-        $this->actingAs($this->user)->put('/settings/reminders', ['daily_reminder_at' => '22:30'])->assertSessionHas('success');
-        $this->actingAs($this->user)->put('/settings/reminders', ['monthly_summary' => 0]);
-        $this->assertSame(['22:30', false], [$this->user->fresh()->daily_reminder_at, $this->user->fresh()->monthly_summary]);
+        $this->actingAs($this->user)->get('/settings')->assertOk()->assertDontSee('Reminders');
+        $this->actingAs($this->user)->get('/settings/reminders')->assertNotFound();
+        $this->actingAs($this->user)->put('/settings/reminders', ['monthly_summary' => 0])->assertNotFound();
 
         Sanctum::actingAs($this->user);
-        $this->putJson('/api/v1/settings/reminders', ['daily_reminder_at' => null, 'budget_alert_push' => false])
-            ->assertOk()
-            ->assertJsonPath('data.daily_reminder_at', null)
-            ->assertJsonPath('data.budget_alert_push', false)
-            ->assertJsonPath('data.monthly_summary', false);
-        $this->putJson('/api/v1/settings/reminders', ['daily_reminder_at' => '9pm'])->assertStatus(422);
+        $this->putJson('/api/v1/settings/reminders', ['budget_alert_push' => false])->assertNotFound();
+        $this->assertArrayNotHasKey('daily_reminder_at', $this->getJson('/api/v1/me')->json('data'));
+    }
+
+    public function test_admins_switch_the_automatic_messages_for_everyone(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+        $this->actingAs($admin)->get('/admin/app-control')->assertOk()
+            ->assertSee('Reminders and automatic messages')->assertSee('Daily reminder')->assertSee('9:00 PM')
+            ->assertSee('Budget alerts')->assertSee('Monthly summary email')->assertSee('Birthday wishes');
+
+        $this->actingAs($admin)->put('/admin/app-control/reminders', ['daily_reminder_at' => '20:30'])
+            ->assertSessionHas('success', 'The daily reminder now goes out at 8:30 PM.');
+        $this->assertSame('20:30', AppControl::dailyReminderAt());
+        $this->actingAs($admin)->put('/admin/app-control/reminders', ['daily_reminder_at' => '8pm'])->assertSessionHasErrors('daily_reminder_at');
+
+        $this->actingAs($admin)->put('/admin/app-control/reminders', ['daily_reminder' => 0])
+            ->assertSessionHas('success', 'The daily reminder will not go out to anyone.');
+        $this->assertNull(AppControl::dailyReminderAt());
+        $this->actingAs($admin)->put('/admin/app-control/reminders', ['monthly_summary' => 0]);
+        $this->assertFalse(AppControl::monthlySummary());
+        $this->actingAs($admin)->put('/admin/app-control/reminders', ['daily_reminder' => 1]);
+        $this->assertSame('20:30', AppControl::dailyReminderAt()); // back on, at the time it had
+
+        $this->assertDatabaseHas('admin_activity_logs', ['action' => 'app.daily_reminder_off', 'admin_id' => $admin->id]);
+        $this->assertDatabaseHas('admin_activity_logs', ['action' => 'app.monthly_summary_off']);
+
+        // Not for users.
+        $this->actingAs($this->user)->put('/admin/app-control/reminders', ['daily_reminder' => 0])->assertForbidden();
     }
 }

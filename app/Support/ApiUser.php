@@ -26,10 +26,8 @@ class ApiUser
             // asks for the date of birth before going on. Saving one clears it.
             'birthday_required'   => (bool) $user->birthday_required,
             'email_notifications' => (bool) ($user->email_notifications ?? true),
-            // Settings › Reminders. A null time means the daily reminder is off.
-            'daily_reminder_at'   => $user->daily_reminder_at,
-            'budget_alert_push'   => (bool) ($user->budget_alert_push ?? true),
-            'monthly_summary'     => (bool) ($user->monthly_summary ?? true),
+            // No reminder fields: Admin › App control sets the reminders for
+            // everyone, and an app that finds none shows no Reminders screen.
         ];
     }
 }

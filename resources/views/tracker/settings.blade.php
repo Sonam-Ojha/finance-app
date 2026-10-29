@@ -15,7 +15,6 @@
                     [route('currency.index'), 'Currency', $currency, 'money'],
                     [route('categories.index'), 'Categories', $categories, 'tag'],
                     [route('budgets.index'), 'Budgets', $budgets ? "{$budgets} set" : 'None', 'wallet'],
-                    [route('settings.reminders.edit'), 'Reminders', $user->daily_reminder_at ? \Carbon\Carbon::createFromFormat('H:i', $user->daily_reminder_at)->format('g:i A') : 'Off', 'bell'],
                 ] as [$href, $label, $value, $icon])
                     <a href="{{ $href }}" class="{{ $row }}">
                         <span class="{{ $iconBox }}"><x-icon :name="$icon" /></span>

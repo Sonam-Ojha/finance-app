@@ -21,8 +21,8 @@ class BudgetAlertPush
     /** After an expense is saved: checks from the queue (App\Jobs\CheckBudgetAlerts), so the save never waits on Firebase. */
     public static function afterExpense(User $user, CarbonInterface $spentAt): void
     {
-        // Off only when turned off: a model not read back from the database has no value yet, and the default is on.
-        if ($user->budget_alert_push === false) return;
+        // Everyone gets them; only Admin › App control switches them off.
+        if (! AppControl::budgetAlertPush()) return;
         $month = $spentAt->format('Y-m');
         if ($month !== Labels::now()->format('Y-m')) return;
 

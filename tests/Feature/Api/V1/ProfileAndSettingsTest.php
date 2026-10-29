@@ -44,7 +44,7 @@ class ProfileAndSettingsTest extends ApiTestCase
     public function test_the_user_payload_is_the_same_everywhere(): void
     {
         $this->signIn();
-        $keys = ['id', 'name', 'email', 'email_verified', 'onboarded', 'has_pin', 'has_password', 'currency', 'theme_mode', 'avatar_url', 'birthday', 'birthday_required', 'email_notifications', 'daily_reminder_at', 'budget_alert_push', 'monthly_summary'];
+        $keys = ['id', 'name', 'email', 'email_verified', 'onboarded', 'has_pin', 'has_password', 'currency', 'theme_mode', 'avatar_url', 'birthday', 'birthday_required', 'email_notifications'];
 
         $this->assertSame($keys, array_keys($this->getJson('/api/v1/me')->json('data')));
         $this->assertSame($keys, array_keys($this->getJson('/api/v1/bootstrap')->json('data.user')));

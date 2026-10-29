@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Support\AppControl;
 use App\Support\BudgetAlertPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,6 +29,7 @@ class CheckBudgetAlerts implements ShouldQueue
     public function handle(): void
     {
         $user = User::find($this->userId);
-        if ($user && $user->budget_alert_push !== false) BudgetAlertPush::check($user, $this->month);
+        // Admin › App control can switch budget alert pushes off for everyone.
+        if ($user && AppControl::budgetAlertPush()) BudgetAlertPush::check($user, $this->month);
     }
 }

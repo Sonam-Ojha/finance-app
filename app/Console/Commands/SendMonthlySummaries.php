@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Notifications\MonthlySummaryMail;
+use App\Support\AppControl;
 use App\Support\Labels;
 use App\Support\MonthlySummary;
 use Illuminate\Console\Command;
@@ -12,8 +13,8 @@ use Throwable;
 /**
  * The monthly summary email: on the 1st, from 9 a.m. India time, last
  * month's money in, spending, savings, top categories and budgets — to every
- * user who kept it on (Settings → Reminders) and recorded anything that
- * month. Days 2 and 3 catch up if the server was down on the 1st.
+ * user who recorded anything that month, unless Admin › App control has
+ * switched it off. Days 2 and 3 catch up if the server was down on the 1st.
  */
 class SendMonthlySummaries extends Command
 {
@@ -26,6 +27,11 @@ class SendMonthlySummaries extends Command
 
     public function handle(): int
     {
+        if (! AppControl::monthlySummary()) {
+            $this->info('The monthly summary email is switched off.');
+            return self::SUCCESS;
+        }
+
         $now = Labels::now();
         $month = $this->option('month');
         if (! $month) {
@@ -35,7 +41,6 @@ class SendMonthlySummaries extends Command
 
         $sent = 0;
         User::query()
-            ->where('monthly_summary', true)
             ->whereNotNull('email')->where('email', '!=', '')
             ->where(fn ($q) => $q->whereNull('summary_sent_for')->orWhere('summary_sent_for', '!=', $month))
             ->limit(self::BATCH)

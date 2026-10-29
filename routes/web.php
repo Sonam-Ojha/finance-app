@@ -88,8 +88,6 @@ Route::middleware(['auth', 'email.verified'])->group(function () {
     Route::get('/settings', [Tracker\SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/appearance', [Tracker\SettingsController::class, 'appearance'])->name('settings.appearance');
     Route::put('/settings/appearance', [Tracker\SettingsController::class, 'updateTheme'])->name('settings.theme');
-    Route::get('/settings/reminders', [Tracker\SettingsController::class, 'reminders'])->name('settings.reminders.edit');
-    Route::put('/settings/reminders', [Tracker\SettingsController::class, 'updateReminders'])->name('settings.reminders');
     Route::put('/settings/sidebar',[Tracker\SettingsController::class, 'updateSidebar'])->name('settings.sidebar');
     Route::put('/settings/email-notifications', [Tracker\SettingsController::class, 'updateEmailNotifications'])->name('settings.email');
     Route::get('/about', [Tracker\SettingsController::class, 'about'])->name('about');
@@ -132,7 +130,7 @@ foreach ([
     'investment'                   => ['goals.index', []],
     'bad-debt'                     => ['groups.index', []],        // who owes whom
     'contact'                      => ['groups.index', []],
-    'reminder'                     => ['settings.reminders.edit', []], // Settings › Reminders
+    'reminder'                     => ['settings.index', []],
     'report/generate'              => ['reports.pdf', []],         // its month and year carry over
     'report'                       => ['analytics.index', []],
     'settings/masters'             => ['settings.index', []],
@@ -193,6 +191,7 @@ Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('a
     Route::put('app-control/maintenance', [\App\Http\Controllers\Admin\AppControlController::class, 'maintenance'])->name('app-control.maintenance');
     Route::put('app-control/versions', [\App\Http\Controllers\Admin\AppControlController::class, 'versions'])->name('app-control.versions');
     Route::put('app-control/email-verification', [\App\Http\Controllers\Admin\AppControlController::class, 'emailVerification'])->name('app-control.email-verification');
+    Route::put('app-control/reminders', [\App\Http\Controllers\Admin\AppControlController::class, 'reminders'])->name('app-control.reminders');
 
     Route::get('support', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
     Route::get('support/{ticket}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->whereNumber('ticket')->name('support.show');

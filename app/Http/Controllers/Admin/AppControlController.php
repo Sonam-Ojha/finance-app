@@ -28,7 +28,61 @@ class AppControlController extends Controller
             'emailSetHere'       => AppControl::emailVerificationSetHere(),
             'emailEnvDefault'    => (bool) config('services.email_check.required_for_api'),
             'status'             => AppControl::status(),
+            'reminderAt'         => AppControl::dailyReminderAt(),
+            'savedReminderAt'    => AppSettings::get(AppControl::DAILY_REMINDER_AT, AppControl::DEFAULT_REMINDER_AT),
+            'autoMessages'       => [
+                AppControl::BUDGET_ALERT_PUSH => AppControl::budgetAlertPush(),
+                AppControl::MONTHLY_SUMMARY   => AppControl::monthlySummary(),
+                AppControl::BIRTHDAY_WISHES   => AppControl::birthdayWishes(),
+            ],
         ]);
+    }
+
+    /** What each automatic message is called in the activity log and the success message. */
+    private const AUTO_MESSAGES = [
+        AppControl::DAILY_REMINDER    => 'the daily reminder',
+        AppControl::BUDGET_ALERT_PUSH => 'budget alert pushes',
+        AppControl::MONTHLY_SUMMARY   => 'the monthly summary email',
+        AppControl::BIRTHDAY_WISHES   => 'birthday wishes',
+    ];
+
+    /**
+     * The messages the server sends everyone on its own. One field per form:
+     * a switch (1 or 0) or the daily reminder's time. Users cannot turn them
+     * off; only this can.
+     */
+    public function reminders(Request $request)
+    {
+        $request->validate([
+            AppControl::DAILY_REMINDER    => 'sometimes|boolean',
+            AppControl::DAILY_REMINDER_AT => 'sometimes|date_format:H:i',
+            AppControl::BUDGET_ALERT_PUSH => 'sometimes|boolean',
+            AppControl::MONTHLY_SUMMARY   => 'sometimes|boolean',
+            AppControl::BIRTHDAY_WISHES   => 'sometimes|boolean',
+        ], [AppControl::DAILY_REMINDER_AT . '.date_format' => 'Pick a time for the daily reminder.']);
+
+        $back = redirect()->route('admin.app-control');
+
+        if ($request->has(AppControl::DAILY_REMINDER_AT)) {
+            $time = $request->input(AppControl::DAILY_REMINDER_AT);
+            AppSettings::set(AppControl::DAILY_REMINDER_AT, $time === AppControl::DEFAULT_REMINDER_AT ? null : $time);
+            $label = \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A');
+            AdminActivity::record('app.daily_reminder_at', "set the daily reminder to {$label}");
+
+            return $back->with('success', "The daily reminder now goes out at {$label}.");
+        }
+
+        foreach (self::AUTO_MESSAGES as $key => $name) {
+            if (! $request->has($key)) continue;
+            $on = $request->boolean($key);
+            // On is the default: stored only while off.
+            AppSettings::set($key, $on ? null : false);
+            AdminActivity::record("app.{$key}_" . ($on ? 'on' : 'off'), ($on ? 'turned on ' : 'turned off ') . $name);
+
+            return $back->with('success', ucfirst($name) . ($on ? ' will go out again.' : ' will not go out to anyone.'));
+        }
+
+        return $back;
     }
 
     /**
