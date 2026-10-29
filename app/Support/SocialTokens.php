@@ -21,10 +21,24 @@ class SocialTokens
     private const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
     private const APPLE_ISSUERS  = ['https://appleid.apple.com'];
 
-    /** @return array{sub: string, email: ?string, email_verified: bool, name: ?string}|null */
+    /**
+     * The app's tokens (GOOGLE_CLIENT_IDS) and the website's "Continue with
+     * Google" button's (services.google.web_client_id) are both accepted.
+     *
+     * @return array{sub: string, email: ?string, email_verified: bool, name: ?string}|null
+     */
     public static function google(string $token): ?array
     {
-        return self::verify($token, self::GOOGLE_KEYS, self::GOOGLE_ISSUERS, config('services.google.client_ids'));
+        return self::verify($token, self::GOOGLE_KEYS, self::GOOGLE_ISSUERS, self::googleClientIds());
+    }
+
+    /** @return list<string> */
+    public static function googleClientIds(): array
+    {
+        return array_values(array_unique(array_filter([
+            ...(array) config('services.google.client_ids', []),
+            config('services.google.web_client_id'),
+        ])));
     }
 
     /** Apple never puts the name in the token; the app sends it, first sign-in only. */

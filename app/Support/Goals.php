@@ -2,14 +2,14 @@
 
 namespace App\Support;
 
+use App\Jobs\SendPush;
 use App\Models\GoalContribution;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
-use function Illuminate\Support\defer;
+use Throwable;
 
 /**
  * Savings goals, shared by the API and the website. The one place that
@@ -98,6 +98,39 @@ class Goals
         return $contribution;
     }
 
+    /**
+     * Removes one of the goal's contributions (a 404 for one from another
+     * goal). Refused, with a message under $field, when the goal would then
+     * hold less than nothing — removing money put in before a withdrawal.
+     */
+    public static function deleteContribution(SavingsGoal $goal, int|string $contributionId, string $field = 'contribution'): GoalContribution
+    {
+        $contribution = DB::transaction(function () use ($goal, $contributionId, $field) {
+            // One at a time per goal, like contribute().
+            $locked = SavingsGoal::whereKey($goal->id)->lockForUpdate()->firstOrFail();
+            $contribution = ctype_digit((string) $contributionId) ? $locked->contributions()->find((int) $contributionId) : null;
+            if (! $contribution) abort(404, 'Not found.');
+
+            $saved = (int) $locked->contributions()->sum('amount_minor');
+            if ($saved - $contribution->amount_minor < 0) {
+                $money = DisplayCurrency::for($goal->user);
+                throw ValidationException::withMessages([$field => 'Removing this would leave the goal below ' . $money->format(0)
+                    . ' — it holds ' . $money->format($saved) . '. Remove a withdrawal first.']);
+            }
+
+            $contribution->delete();
+            self::sync($locked);
+
+            return $contribution;
+        });
+
+        $goal->refresh();
+        // Removing a withdrawal can bring a goal up to its target.
+        self::celebrateIfReached($goal);
+
+        return $contribution;
+    }
+
     /** Sets saved_minor to the sum of the goal's contributions. */
     public static function sync(SavingsGoal $goal): void
     {
@@ -122,7 +155,12 @@ class Goals
         $money = DisplayCurrency::for($user);
         $title = "🎉 Goal reached: {$goal->name}";
         $body  = 'You saved ' . $money->format($goal->saved_minor) . " for {$goal->emoji} {$goal->name}. Well done!";
-        defer(fn () => UserPush::send($user, $title, $body, ['type' => 'goal_reached', 'goal_id' => (string) $goal->id]));
+        // From the queue, so a slow Firebase never delays the save.
+        try {
+            SendPush::dispatch($user->id, $title, $body, ['type' => 'goal_reached', 'goal_id' => (string) $goal->id]);
+        } catch (Throwable $e) {
+            report($e);
+        }
 
         return true;
     }

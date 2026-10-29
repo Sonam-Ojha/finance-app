@@ -48,7 +48,7 @@ class SendScheduledNotifications extends Command
             if ($schedule->target_user_id && ! $schedule->target) continue;
 
             $result = AdminNotifier::send($schedule->creator, $schedule->title, $schedule->body, $schedule->target,
-                $schedule->via_push, $schedule->via_email, afterResponse: false, schedule: $schedule);
+                $schedule->via_push, $schedule->via_email, schedule: $schedule);
             ScheduledNotification::whereKey($schedule->id)->increment('runs', 1, ['last_run_at' => now()]);
 
             $this->info("Sent #{$schedule->id} “{$schedule->title}”. " . implode(' ', $result['notes']));

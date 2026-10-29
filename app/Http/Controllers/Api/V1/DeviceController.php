@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeviceToken;
+use App\Support\SignOut;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -21,10 +22,15 @@ class DeviceController extends Controller
             'platform' => ['nullable', Rule::in(DeviceToken::PLATFORMS)],
         ]);
 
-        // A token is one phone: if someone else was signed in on it, it is theirs no longer.
+        // A token is one phone: if someone else was signed in on it, it is
+        // theirs no longer. It is tied to this sign-in, and goes when it ends.
         DeviceToken::updateOrCreate(
             ['token' => $request->input('token')],
-            ['user_id' => $request->user()->id, 'platform' => $request->input('platform', 'android')],
+            [
+                'user_id'         => $request->user()->id,
+                'access_token_id' => SignOut::currentTokenId($request->user()),
+                'platform'        => $request->input('platform', 'android'),
+            ],
         );
 
         return response()->noContent();

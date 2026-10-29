@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Http\Middleware\RejectBlockedUsers;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -34,15 +36,18 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Checks the email and password, and returns whose they are — without
+     * signing in: a blocked account is refused, and one with two-factor on
+     * still has its code to give (AuthenticatedSessionController).
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $guard = Auth::guard('web');
+        if (! $guard->validate($this->only('email', 'password'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -51,6 +56,18 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        /** @var User $user */
+        $user = $guard->getLastAttempted();
+        // What Auth::attempt() would do: a hash made with older settings is redone.
+        if (config('hashing.rehash_on_login', true) && method_exists($guard->getProvider(), 'rehashPasswordIfRequired')) {
+            $guard->getProvider()->rehashPasswordIfRequired($user, $this->only('password'));
+        }
+        if ($user->isBlocked()) {
+            throw ValidationException::withMessages(['email' => RejectBlockedUsers::MESSAGE]);
+        }
+
+        return $user;
     }
 
     /**

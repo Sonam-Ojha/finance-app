@@ -98,6 +98,13 @@ class Accounts
             AppIncome::where('user_id', $user->id)->delete();
             UserCurrency::where('user_id', $user->id)->delete();
             Category::where('user_id', $user->id)->delete();
+            // ── Groups: out of every group; a group left with nobody in it goes
+            // too (its expenses and payments by foreign key). Their part in
+            // the others' ledgers stays, as "Former member" (App\Support\Groups).
+            $groupIds = \App\Models\GroupMember::where('user_id', $user->id)->pluck('group_id')->all();
+            \App\Models\GroupMember::where('user_id', $user->id)->delete();
+            if ($groupIds) \App\Models\Group::whereIn('id', $groupIds)->whereDoesntHave('members')->delete();
+            // ── end Groups ──
             $user->tokens()->delete();
             // The older web app's tables still cascade from here.
             $user->delete();
@@ -110,5 +117,7 @@ class Accounts
         }
         // The expenses' receipt photos (their rows went above without model events).
         if ($hadReceipts) Receipts::deleteAllFor($user);
+        // Screenshots sent to support (the tickets went with the user, by foreign key).
+        SupportTickets::deleteAllFor($user);
     }
 }

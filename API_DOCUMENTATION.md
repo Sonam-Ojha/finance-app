@@ -1020,6 +1020,12 @@ Upload existing local SQLite data on first login. Idempotent — can only run on
 
 ## Finance Web App API
 
+> **Retired (October 2026).** Every path in this section, with any method,
+> now answers `410 Gone` with
+> `{"message": "This version of the Expense Tracker API has been retired. Please update the app.", "code": "api_retired"}`
+> (no sign-in needed; 60 requests a minute). The app uses only `/api/v1`.
+> The rows it wrote stay in their tables. Kept below for reference only.
+
 Base URL: **`/api`**  
 All amounts in **decimal format** (not paise). Auth via Bearer token.
 
@@ -1705,6 +1711,16 @@ Amounts are always stored in INR. A rate (rupees for one unit) only tells the ap
 - **Admin → Users:** find people by name or email, and make or remove admins. An admin cannot demote themselves, and the last admin cannot be removed.
 - **Admin → Send Notification:** sends a title (max 100) and a message (max 500) to all users or to one user by email. Each send is listed with its delivery count. *Inbox only* means Firebase was not configured, so the message reached only the app's inbox.
 - Command line: `php artisan user:admin {email}` makes an admin, and `--remove` takes it back.
+
+### Undoing a group payment, deleting a goal entry 🔒
+
+- `DELETE /groups/{id}/settlements/{settlementId}` → `200 { "data": GroupDetail }` (the same shape as `GET /groups/{id}`), with the balances back as they were without that payment. Any member may do it. A payment of another group, or a group the user is not in, is a 404.
+- `DELETE /goals/{id}/contributions/{contributionId}` → `200 { "data": Goal }`, `saved_minor` recalculated. Refused with `422` and `errors.contribution` when the goal would then hold less than zero (removing money put in before a withdrawal): *"Removing this would leave the goal below ₹0.00 — it holds ₹2,000.00. Remove a withdrawal first."* Someone else's goal, or an entry of another goal, is a 404.
+- Deleting an account (`DELETE /me`) also takes the user out of every group; a group left with no members is deleted. Their part in the others' ledgers stays, as "Former member".
+
+### Emails and pushes come from the queue
+
+Activity emails, group news, goal and budget pushes and admin notifications are queued (the scheduler runs `queue:work` every minute), so they arrive up to about a minute after the request. A group member with no phone signed in gets group news (a new expense they are part of, a payment recorded for them) by email instead of a push, if they keep emails on.
 
 ---
 

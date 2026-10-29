@@ -128,7 +128,7 @@ class AccountAndCurrencyTest extends TrackerTestCase
     public function test_signing_up_on_the_website_starts_with_the_apps_categories(): void
     {
         auth()->logout();
-        $this->post('/register', ['name' => 'New Person', 'email' => 'new@example.com', 'password' => 'password123', 'password_confirmation' => 'password123']);
+        $this->post('/register', ['name' => 'New Person', 'email' => 'new@example.com', 'birthday' => '1995-04-12', 'password' => 'password123', 'password_confirmation' => 'password123']);
         $this->assertSame(8, User::where('email', 'new@example.com')->firstOrFail()->categories()->count());
     }
 }

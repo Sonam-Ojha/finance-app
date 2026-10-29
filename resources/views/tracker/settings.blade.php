@@ -15,6 +15,7 @@
                     [route('currency.index'), 'Currency', $currency, 'money'],
                     [route('categories.index'), 'Categories', $categories, 'tag'],
                     [route('budgets.index'), 'Budgets', $budgets ? "{$budgets} set" : 'None', 'wallet'],
+                    [route('settings.reminders.edit'), 'Reminders', $user->daily_reminder_at ? \Carbon\Carbon::createFromFormat('H:i', $user->daily_reminder_at)->format('g:i A') : 'Off', 'bell'],
                 ] as [$href, $label, $value, $icon])
                     <a href="{{ $href }}" class="{{ $row }}">
                         <span class="{{ $iconBox }}"><x-icon :name="$icon" /></span>
@@ -22,58 +23,6 @@
                         <span class="text-sm muted">{{ $value }}</span>
                         <x-icon name="chevron-right" class="w-4 h-4 muted" />
                     </a>
-                @endforeach
-            </div>
-        </section>
-
-        {{-- Reminders the server sends on its own (pushes need the app with notifications allowed) --}}
-        <section>
-            <h2 class="section-label mb-2 px-1">Reminders</h2>
-            @php
-                $reminderAt = $user->daily_reminder_at;
-                $times = collect(range(17 * 2, 23 * 2 + 1))->mapWithKeys(fn ($half) => [
-                    sprintf('%02d:%02d', intdiv($half, 2), $half % 2 * 30) => \Carbon\Carbon::createFromTime(intdiv($half, 2), $half % 2 * 30)->format('g:i A'),
-                ]);
-            @endphp
-            <div class="card !p-0 divide-soft overflow-hidden">
-                <div class="flex items-center gap-3 px-4 py-3">
-                    <span class="{{ $iconBox }}"><x-icon name="bell" /></span>
-                    <span class="flex-1 min-w-0">
-                        <span class="block font-semibold strong">Daily reminder</span>
-                        <span class="block text-[13px] muted">A push if you have not added an expense for the day yet.</span>
-                    </span>
-                    @if($reminderAt)
-                        <form method="POST" action="{{ route('settings.reminders') }}">
-                            @csrf @method('PUT')
-                            <label for="daily_reminder_at" class="sr-only">Reminder time</label>
-                            <select id="daily_reminder_at" name="daily_reminder_at" onchange="this.form.submit()" class="input !w-auto !min-h-10 !py-1.5 !text-sm">
-                                @foreach($times->union([$reminderAt => \Carbon\Carbon::createFromFormat('H:i', $reminderAt)->format('g:i A')])->sortKeys() as $value => $label)
-                                    <option value="{{ $value }}" @selected($value === $reminderAt)>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </form>
-                    @endif
-                    <form method="POST" action="{{ route('settings.reminders') }}">
-                        @csrf @method('PUT')
-                        <input type="hidden" name="daily_reminder_at" value="{{ $reminderAt ? '' : '21:00' }}">
-                        <button type="submit" role="switch" aria-checked="{{ $reminderAt ? 'true' : 'false' }}" aria-label="Daily reminder" class="adm-switch"><span></span></button>
-                    </form>
-                </div>
-                @foreach([
-                    ['budget_alert_push', 'Budget alerts on your phone', 'A push when a budget is 80% used, and when it is passed.', 'warning'],
-                    ['monthly_summary', 'Monthly summary email', 'Last month’s money in, spending and budgets, on the 1st.', 'envelope'],
-                ] as [$field, $label, $hint, $icon])
-                    @php $on = (bool) ($user->{$field} ?? true); @endphp
-                    <form method="POST" action="{{ route('settings.reminders') }}" class="flex items-center gap-3 px-4 py-3">
-                        @csrf @method('PUT')
-                        <input type="hidden" name="{{ $field }}" value="{{ $on ? 0 : 1 }}">
-                        <span class="{{ $iconBox }}"><x-icon :name="$icon" /></span>
-                        <span class="flex-1 min-w-0">
-                            <span class="block font-semibold strong">{{ $label }}</span>
-                            <span class="block text-[13px] muted">{{ $hint }}</span>
-                        </span>
-                        <button type="submit" role="switch" aria-checked="{{ $on ? 'true' : 'false' }}" aria-label="{{ $label }}" class="adm-switch"><span></span></button>
-                    </form>
                 @endforeach
             </div>
         </section>
@@ -97,6 +46,18 @@
                 <a href="{{ route('notifications.index') }}" class="{{ $row }}">
                     <span class="{{ $iconBox }}"><x-icon name="bell" /></span>
                     <span class="flex-1 font-semibold strong">Notifications</span>
+                    <x-icon name="chevron-right" class="w-4 h-4 muted" />
+                </a>
+                @php $supportReplies = \App\Models\SupportTicket::unreadRepliesFor($user->id); @endphp
+                <a href="{{ route('support.index') }}" class="{{ $row }}">
+                    <span class="{{ $iconBox }}"><x-icon name="megaphone" /></span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block font-semibold strong">Help & support</span>
+                        <span class="block text-[13px] muted">Ask a question or report a problem.</span>
+                    </span>
+                    @if($supportReplies)
+                        <span class="rounded-full bg-status-error px-2 py-0.5 text-[11px] font-semibold text-white">{{ $supportReplies }} new {{ \Illuminate\Support\Str::plural('reply', $supportReplies) }}</span>
+                    @endif
                     <x-icon name="chevron-right" class="w-4 h-4 muted" />
                 </a>
                 <a href="{{ route('about') }}" class="{{ $row }}">

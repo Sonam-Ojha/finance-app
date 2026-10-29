@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\Accounts;
 use App\Support\EmailVerification;
 use App\Support\RealEmail;
+use App\Support\SignOut;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -137,6 +138,9 @@ class AccountController extends Controller
         }
 
         $user->update(['password' => Hash::make($request->new_password)]);
+
+        // The app's sign-ins (and their phones' pushes) end with the old password.
+        SignOut::apiTokens($user);
 
         return redirect()->route('settings.index')->with('success', $hasPassword ? 'Password changed' : 'Password set');
     }

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\RejectBlockedUsers;
 use App\Models\User;
 use App\Support\Accounts;
 use App\Support\ApiUser;
+use App\Support\Birthday;
 use App\Support\DefaultCategories;
 use App\Support\EmailVerification;
 use App\Support\RealEmail;
+use App\Support\SignOut;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,18 +21,26 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        // A blocked account's address stays blocked, rather than "taken".
+        if (is_string($request->email) && User::where('email', strtolower(trim($request->email)))->whereNotNull('blocked_at')->exists()) {
+            return $this->blocked();
+        }
+
         $request->validate([
             'email'    => ['bail', 'required', 'email', 'unique:users,email', function ($attr, $val, $fail) {
                 if (strlen(trim($val)) === 0) $fail('Enter a valid email address.');
             }, RealEmail::rule()],
             'password' => ['required', 'min:8', 'regex:/[a-zA-Z]/', 'regex:/\d/'],
+            // Optional: the 1.0 app does not send it; newer ones require it in their form.
+            'birthday' => ['bail', 'nullable', ...Birthday::rules()],
         ], [
-            'email.required'    => 'Enter a valid email address.',
-            'email.email'       => 'Enter a valid email address.',
-            'email.unique'      => 'An account with that email already exists.',
-            'password.required' => 'Use at least 8 characters.',
-            'password.min'      => 'Use at least 8 characters.',
-            'password.regex'    => 'Include at least one letter and one number.',
+            'email.required'       => 'Enter a valid email address.',
+            'email.email'          => 'Enter a valid email address.',
+            'email.unique'         => 'An account with that email already exists.',
+            'password.required'    => 'Use at least 8 characters.',
+            'password.min'         => 'Use at least 8 characters.',
+            'password.regex'       => 'Include at least one letter and one number.',
+            'birthday.date_format' => Birthday::MESSAGE,
         ]);
 
         $user = User::create([
@@ -39,6 +50,7 @@ class AuthController extends Controller
             'onboarded' => true,
             'currency'  => 'INR',
             'theme_mode'=> 'light',
+            'birthday'  => $request->input('birthday') ?: null,
         ]);
 
         DefaultCategories::seed($user);
@@ -80,6 +92,10 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => ['Incorrect password.']]);
         }
 
+        if ($user->isBlocked()) {
+            return $this->blocked();
+        }
+
         return response()->json([
             'data' => [
                 'token' => $user->createToken('api')->plainTextToken,
@@ -117,6 +133,9 @@ class AuthController extends Controller
         }
 
         $request->user()->update(['password' => Hash::make($request->new_password)]);
+
+        // Every other phone signed in to this account is signed out; this one stays.
+        SignOut::apiTokens($request->user(), SignOut::currentTokenId($request->user()));
 
         return response()->noContent();
     }
@@ -222,5 +241,11 @@ class AuthController extends Controller
     private function userPayload(User $user): array
     {
         return ApiUser::payload($user);
+    }
+
+    /** The same answer RejectBlockedUsers gives a blocked account's token. */
+    private function blocked()
+    {
+        return RejectBlockedUsers::response();
     }
 }

@@ -1,18 +1,5 @@
 <?php
 
-use App\Http\Controllers\IncomeController;
-use App\Http\Controllers\ExpenseController;
-use App\Http\Controllers\BankAccountController;
-use App\Http\Controllers\CreditCardController;
-use App\Http\Controllers\LoanController;
-use App\Http\Controllers\InvestmentController;
-use App\Http\Controllers\CommissionController;
-use App\Http\Controllers\CashbackController;
-use App\Http\Controllers\BadDebtController;
-use App\Http\Controllers\ContactController;
-use App\Http\Controllers\ReminderController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Admin\ActivityController as AdminActivityController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
@@ -69,6 +56,7 @@ Route::middleware(['auth', 'email.verified'])->group(function () {
     Route::post('/groups/{group}/members', [Tracker\GroupController::class, 'addMember'])->whereNumber('group')->middleware('throttle:30,1')->name('groups.members.store');
     Route::delete('/groups/{group}/members/{user}', [Tracker\GroupController::class, 'removeMember'])->whereNumber(['group', 'user'])->name('groups.members.destroy');
     Route::post('/groups/{group}/settlements', [Tracker\GroupController::class, 'settle'])->whereNumber('group')->name('groups.settlements.store');
+    Route::delete('/groups/{group}/settlements/{settlement}', [Tracker\GroupController::class, 'destroySettlement'])->whereNumber(['group', 'settlement'])->name('groups.settlements.destroy');
     Route::get('/groups/{group}/expenses/new', [Tracker\GroupExpenseController::class, 'create'])->whereNumber('group')->name('groups.expenses.create');
     Route::post('/groups/{group}/expenses', [Tracker\GroupExpenseController::class, 'store'])->whereNumber('group')->name('groups.expenses.store');
     Route::get('/groups/{group}/expenses/{expense}/edit', [Tracker\GroupExpenseController::class, 'edit'])->whereNumber(['group', 'expense'])->name('groups.expenses.edit');
@@ -92,6 +80,7 @@ Route::middleware(['auth', 'email.verified'])->group(function () {
     Route::patch('/goals/{goal}/archive', [Tracker\GoalController::class, 'archive'])->whereNumber('goal')->name('goals.archive');
     Route::delete('/goals/{goal}', [Tracker\GoalController::class, 'destroy'])->whereNumber('goal')->name('goals.destroy');
     Route::post('/goals/{goal}/contributions', [Tracker\GoalController::class, 'contribute'])->whereNumber('goal')->name('goals.contributions.store');
+    Route::delete('/goals/{goal}/contributions/{contribution}', [Tracker\GoalController::class, 'destroyContribution'])->whereNumber(['goal', 'contribution'])->name('goals.contributions.destroy');
     // ── end Exports, receipts, savings goals ──
 
     Route::get('/notifications', [Tracker\NotificationController::class, 'index'])->name('notifications.index');
@@ -99,6 +88,7 @@ Route::middleware(['auth', 'email.verified'])->group(function () {
     Route::get('/settings', [Tracker\SettingsController::class, 'index'])->name('settings.index');
     Route::get('/settings/appearance', [Tracker\SettingsController::class, 'appearance'])->name('settings.appearance');
     Route::put('/settings/appearance', [Tracker\SettingsController::class, 'updateTheme'])->name('settings.theme');
+    Route::get('/settings/reminders', [Tracker\SettingsController::class, 'reminders'])->name('settings.reminders.edit');
     Route::put('/settings/reminders', [Tracker\SettingsController::class, 'updateReminders'])->name('settings.reminders');
     Route::put('/settings/sidebar',[Tracker\SettingsController::class, 'updateSidebar'])->name('settings.sidebar');
     Route::put('/settings/email-notifications', [Tracker\SettingsController::class, 'updateEmailNotifications'])->name('settings.email');
@@ -122,78 +112,40 @@ Route::middleware(['auth', 'email.verified'])->group(function () {
 });
 
 /*
- * The older "Smart Paisa" pages (bank accounts, cards, loans, …). They are
- * off the menu — the website now offers what the app offers — but stay
- * reachable so nothing recorded in them is lost.
+ * ── Retired "Smart Paisa" pages ──
+ * The older pages (bank accounts, cards, loans, …) are retired. Every old
+ * address, and anything under it, redirects permanently (301) to the page
+ * that does its job now; the rows recorded in them stay in their tables.
+ * Signed-out visitors land on the sign-in page from there.
+ * App\Http\Controllers\RetiredController::page.
  */
-Route::middleware(['auth', 'email.verified'])->group(function () {
-
-    // Income
-    Route::resource('income', IncomeController::class)->except(['show']);
-    Route::get('income/{income}', [IncomeController::class, 'show'])->name('income.show');
-
-    // Expense
-    Route::resource('expense', ExpenseController::class)->except(['show']);
-    Route::get('expense/{expense}', [ExpenseController::class, 'show'])->name('expense.show');
-    Route::get('expense-categories', [ExpenseController::class, 'categories'])->name('expense.categories');
-    Route::post('expense-categories', [ExpenseController::class, 'storeCategory'])->name('expense.categories.store');
-    Route::delete('expense-categories/{expenseCategory}', [ExpenseController::class, 'destroyCategory'])->name('expense.categories.destroy');
-
-    // Bank Accounts
-    Route::resource('bank', BankAccountController::class)->except(['show']);
-    Route::get('bank/{bank}', [BankAccountController::class, 'show'])->name('bank.show');
-    Route::post('bank/{bank}/transaction', [BankAccountController::class, 'storeTransaction'])->name('bank.transaction.store');
-
-    // Credit Cards
-    Route::resource('credit-card', CreditCardController::class)->except(['show']);
-    Route::get('credit-card/{creditCard}', [CreditCardController::class, 'show'])->name('credit-card.show');
-    Route::post('credit-card/{creditCard}/transaction', [CreditCardController::class, 'storeTransaction'])->name('credit-card.transaction.store');
-
-    // Loans
-    Route::resource('loan', LoanController::class)->except(['show']);
-    Route::get('loan/{loan}', [LoanController::class, 'show'])->name('loan.show');
-    Route::post('loan/{loan}/payment', [LoanController::class, 'storePayment'])->name('loan.payment.store');
-
-    // Investments
-    Route::resource('investment', InvestmentController::class);
-
-    // Commissions
-    Route::resource('commission', CommissionController::class);
-
-    // Cashbacks
-    Route::resource('cashback', CashbackController::class);
-
-    // Bad Debt / Pending Money
-    Route::resource('bad-debt', BadDebtController::class)->except(['show']);
-    Route::get('bad-debt/{badDebt}', [BadDebtController::class, 'show'])->name('bad-debt.show');
-
-    // Contacts / Ledger
-    Route::resource('contact', ContactController::class)->except(['show']);
-    Route::get('contact/{contact}', [ContactController::class, 'show'])->name('contact.show');
-    Route::post('contact/{contact}/transaction', [ContactController::class, 'storeTransaction'])->name('contact.transaction.store');
-
-    // Reminders
-    Route::resource('reminder', ReminderController::class)->except(['show']);
-    Route::get('reminder/{reminder}', [ReminderController::class, 'show'])->name('reminder.show');
-    Route::patch('reminder/{reminder}/done', [ReminderController::class, 'markDone'])->name('reminder.done');
-
-    // Reports
-    Route::get('report', [ReportController::class, 'index'])->name('report.index');
-    Route::post('report/generate', [ReportController::class, 'generate'])->name('report.generate');
-
-    // Settings / Masters (the page itself is now the tracker's Settings)
-    Route::get('settings/masters', [SettingsController::class, 'index'])->name('settings.masters');
-    Route::post('settings/expense-category', [SettingsController::class, 'storeExpenseCategory'])->name('settings.expense-category.store');
-    Route::delete('settings/expense-category/{expenseCategory}', [SettingsController::class, 'destroyExpenseCategory'])->name('settings.expense-category.destroy');
-    Route::post('settings/income-category', [SettingsController::class, 'storeIncomeCategory'])->name('settings.income-category.store');
-    Route::delete('settings/income-category/{incomeCategory}', [SettingsController::class, 'destroyIncomeCategory'])->name('settings.income-category.destroy');
-    Route::post('settings/payment-mode', [SettingsController::class, 'storePaymentMode'])->name('settings.payment-mode.store');
-    Route::delete('settings/payment-mode/{paymentMode}', [SettingsController::class, 'destroyPaymentMode'])->name('settings.payment-mode.destroy');
-    Route::post('settings/investment-category', [SettingsController::class, 'storeInvestmentCategory'])->name('settings.investment-category.store');
-    Route::delete('settings/investment-category/{investmentCategory}', [SettingsController::class, 'destroyInvestmentCategory'])->name('settings.investment-category.destroy');
-    Route::post('settings/bank-master', [SettingsController::class, 'storeBankMaster'])->name('settings.bank-master.store');
-    Route::delete('settings/bank-master/{bankMaster}', [SettingsController::class, 'destroyBankMaster'])->name('settings.bank-master.destroy');
-});
+foreach ([
+    // old path (and everything under it) => [route name, query]
+    'income'                       => ['transactions.index', ['type' => 'income']],
+    'expense'                      => ['transactions.index', ['type' => 'expense']],
+    'expense-categories'           => ['categories.index', []],
+    'commission'                   => ['transactions.index', ['type' => 'income']],
+    'cashback'                     => ['transactions.index', ['type' => 'income']],
+    'bank'                         => ['dashboard', []],
+    'credit-card'                  => ['dashboard', []],
+    'loan'                         => ['recurring.index', []],     // EMIs are recurring expenses now
+    'investment'                   => ['goals.index', []],
+    'bad-debt'                     => ['groups.index', []],        // who owes whom
+    'contact'                      => ['groups.index', []],
+    'reminder'                     => ['settings.index', []],      // Settings › Reminders
+    'report/generate'              => ['reports.pdf', []],         // its month and year carry over
+    'report'                       => ['analytics.index', []],
+    'settings/masters'             => ['settings.index', []],
+    'settings/expense-category'    => ['categories.index', []],
+    'settings/income-category'     => ['settings.index', []],
+    'settings/payment-mode'        => ['settings.index', []],
+    'settings/investment-category' => ['settings.index', []],
+    'settings/bank-master'         => ['settings.index', []],
+] as $old => [$to, $query]) {
+    Route::any("{$old}/{rest?}", [\App\Http\Controllers\RetiredController::class, 'page'])
+        ->where('rest', '.*')->defaults('to', $to)->defaults('query', $query);
+}
+// ── end Retired "Smart Paisa" pages ──
 
 // Admin — users with role "admin" only
 Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -207,5 +159,58 @@ Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('a
     Route::delete('notifications/scheduled/{scheduled}', [AdminNotificationController::class, 'destroy'])->name('notifications.scheduled.destroy');
     Route::view('settings', 'admin.settings')->name('settings');
 });
+
+// ── Security: blocking users, admins' two-factor sign-in ──
+// (App\Support\SignOut, App\Support\TwoFactor; the sign-in side is in routes/auth.php)
+Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('users/{user}/block', [\App\Http\Controllers\Admin\UserController::class, 'block'])->whereNumber('user')->name('users.block');
+    Route::delete('users/{user}/block', [\App\Http\Controllers\Admin\UserController::class, 'unblock'])->whereNumber('user')->name('users.unblock');
+    Route::post('two-factor', [\App\Http\Controllers\Admin\TwoFactorController::class, 'store'])->name('two-factor.store');
+    Route::post('two-factor/confirm', [\App\Http\Controllers\Admin\TwoFactorController::class, 'confirm'])->middleware('throttle:10,1')->name('two-factor.confirm');
+    Route::post('two-factor/recovery-codes', [\App\Http\Controllers\Admin\TwoFactorController::class, 'recoveryCodes'])->middleware('throttle:10,1')->name('two-factor.recovery-codes');
+    Route::delete('two-factor', [\App\Http\Controllers\Admin\TwoFactorController::class, 'destroy'])->middleware('throttle:10,1')->name('two-factor.destroy');
+});
+// ── end Security ──
+
+// ── Admin: default categories, currencies, app control, support ──
+// (App\Support\DefaultCategories, Currencies, AppControl, SupportTickets)
+Route::middleware(['auth', 'email.verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('default-categories', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'index'])->name('default-categories.index');
+    Route::post('default-categories', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'store'])->name('default-categories.store');
+    Route::get('default-categories/{defaultCategory}/edit', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'edit'])->whereNumber('defaultCategory')->name('default-categories.edit');
+    Route::put('default-categories/{defaultCategory}', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'update'])->whereNumber('defaultCategory')->name('default-categories.update');
+    Route::patch('default-categories/{defaultCategory}/move', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'move'])->whereNumber('defaultCategory')->name('default-categories.move');
+    Route::delete('default-categories/{defaultCategory}', [\App\Http\Controllers\Admin\DefaultCategoryController::class, 'destroy'])->whereNumber('defaultCategory')->name('default-categories.destroy');
+
+    Route::get('currencies', [\App\Http\Controllers\Admin\CurrencyController::class, 'index'])->name('currencies.index');
+    Route::post('currencies', [\App\Http\Controllers\Admin\CurrencyController::class, 'store'])->name('currencies.store');
+    Route::get('currencies/{currency:code}/edit', [\App\Http\Controllers\Admin\CurrencyController::class, 'edit'])->name('currencies.edit');
+    Route::put('currencies/{currency:code}', [\App\Http\Controllers\Admin\CurrencyController::class, 'update'])->name('currencies.update');
+    Route::patch('currencies/{currency:code}/toggle', [\App\Http\Controllers\Admin\CurrencyController::class, 'toggle'])->name('currencies.toggle');
+    Route::delete('currencies/{currency:code}', [\App\Http\Controllers\Admin\CurrencyController::class, 'destroy'])->name('currencies.destroy');
+
+    Route::get('app-control', [\App\Http\Controllers\Admin\AppControlController::class, 'index'])->name('app-control');
+    Route::put('app-control/maintenance', [\App\Http\Controllers\Admin\AppControlController::class, 'maintenance'])->name('app-control.maintenance');
+    Route::put('app-control/versions', [\App\Http\Controllers\Admin\AppControlController::class, 'versions'])->name('app-control.versions');
+    Route::put('app-control/email-verification', [\App\Http\Controllers\Admin\AppControlController::class, 'emailVerification'])->name('app-control.email-verification');
+
+    Route::get('support', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('support.index');
+    Route::get('support/{ticket}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->whereNumber('ticket')->name('support.show');
+    Route::post('support/{ticket}/reply', [\App\Http\Controllers\Admin\SupportController::class, 'reply'])->whereNumber('ticket')->name('support.reply');
+    Route::patch('support/{ticket}/close', [\App\Http\Controllers\Admin\SupportController::class, 'close'])->whereNumber('ticket')->name('support.close');
+    Route::patch('support/{ticket}/reopen', [\App\Http\Controllers\Admin\SupportController::class, 'reopen'])->whereNumber('ticket')->name('support.reopen');
+    Route::get('support/{ticket}/messages/{message}/screenshot', [\App\Http\Controllers\Admin\SupportController::class, 'screenshot'])->whereNumber(['ticket', 'message'])->name('support.screenshot');
+});
+
+// My account › Help & support (the same tickets as the app's /api/v1/support)
+Route::middleware(['auth', 'email.verified'])->group(function () {
+    Route::get('/support', [Tracker\SupportController::class, 'index'])->name('support.index');
+    // 5 new requests an hour, website and app together (the same "support" counter as /api/v1/support).
+    Route::post('/support', [Tracker\SupportController::class, 'store'])->middleware('throttle:5,60,support')->name('support.store');
+    Route::get('/support/{ticket}', [Tracker\SupportController::class, 'show'])->whereNumber('ticket')->name('support.show');
+    Route::post('/support/{ticket}/messages', [Tracker\SupportController::class, 'message'])->whereNumber('ticket')->middleware('throttle:30,60,support-messages')->name('support.messages.store');
+    Route::get('/support/{ticket}/messages/{message}/screenshot', [Tracker\SupportController::class, 'screenshot'])->whereNumber(['ticket', 'message'])->name('support.screenshot');
+});
+// ── end Admin: default categories, currencies, app control, support ──
 
 require __DIR__.'/auth.php';

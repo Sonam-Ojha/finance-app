@@ -58,6 +58,9 @@
 
         <button type="submit" class="btn-primary">Sign In &rarr;</button>
 
+        {{-- Security: Continue with Google --}}
+        @include('auth.partials.google-button', ['context' => 'signin'])
+
         <div class="divider">
             <div class="divider-line"></div>
             <span class="divider-text">NEW USER?</span>

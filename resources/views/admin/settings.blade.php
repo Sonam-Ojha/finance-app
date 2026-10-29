@@ -26,5 +26,8 @@
             @endforeach
         </div>
     </section>
+
+    {{-- Security: two-factor sign-in for admins --}}
+    @include('admin.partials.two-factor')
     </div>
 </x-admin-layout>

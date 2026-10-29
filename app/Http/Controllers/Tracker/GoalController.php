@@ -9,6 +9,7 @@ use App\Support\DisplayCurrency;
 use App\Support\Goals;
 use App\Support\Labels;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /** Savings goals: the cards, the goal form, a goal's history, and money in and out. Same rules as the API (App\Support\Goals). */
 class GoalController extends Controller
@@ -110,6 +111,22 @@ class GoalController extends Controller
         if (! $wasReached && $goal->reached_at !== null) $message = "🎉 You reached your goal “{$goal->name}”!";
 
         return redirect($this->back($request, route('goals.index')))->with('success', $message);
+    }
+
+    /** Delete in the goal's history: removes one entry, unless the goal would go below zero. */
+    public function destroyContribution(Request $request, SavingsGoal $goal, string $contributionId)
+    {
+        $this->authorizeOwner($request, $goal);
+        $money = DisplayCurrency::for($request->user());
+        try {
+            $entry = Goals::deleteContribution($goal, $contributionId);
+        } catch (ValidationException $e) {
+            return redirect()->route('goals.show', $goal)->with('error', collect($e->errors())->flatten()->first());
+        }
+
+        return redirect()->route('goals.show', $goal)->with('success', $entry->amount_minor > 0
+            ? $money->format($entry->amount_minor) . ' added on ' . $entry->on_date->format('j M Y') . ' removed'
+            : $money->format(-$entry->amount_minor) . ' withdrawn on ' . $entry->on_date->format('j M Y') . ' removed');
     }
 
     private function form(Request $request, ?SavingsGoal $goal)

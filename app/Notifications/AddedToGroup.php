@@ -2,12 +2,16 @@
 
 namespace App\Notifications;
 
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-/** "Rishi added you to 🏖️ Goa trip" (App\Support\Groups::addMember). */
-class AddedToGroup extends Notification
+/** "Rishi added you to 🏖️ Goa trip" (App\Support\Groups::addMember). Queued. */
+class AddedToGroup extends Notification implements ShouldQueue
 {
+    use Queueable;
+
     public function __construct(
         public string $groupLabel,
         public string $addedBy,

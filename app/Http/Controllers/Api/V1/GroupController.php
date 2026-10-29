@@ -103,4 +103,14 @@ class GroupController extends Controller
 
         return response()->json(['data' => Groups::detailShape($group, $user)], 201);
     }
+
+    /** Undo a recorded payment (any member). Returns the group, its balances back as they were. */
+    public function destroySettlement(Request $request, string $id, string $settlementId)
+    {
+        $user  = $request->user();
+        $group = Groups::find($user, $id);
+        Groups::deleteSettlement($group, Groups::findSettlement($group, $settlementId));
+
+        return response()->json(['data' => Groups::detailShape($group, $user)]);
+    }
 }

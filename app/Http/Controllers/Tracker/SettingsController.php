@@ -35,6 +35,12 @@ class SettingsController extends Controller
         return view('tracker.appearance', ['theme' => $request->user()->theme_mode ?: 'light']);
     }
 
+    /** Settings › Reminders: the daily push, budget alert pushes and the monthly summary email. */
+    public function reminders(Request $request)
+    {
+        return view('tracker.reminders', ['user' => $request->user()]);
+    }
+
     public function updateTheme(Request $request)
     {
         $request->validate(['theme_mode' => 'required|in:light,dark,system']);

@@ -64,3 +64,27 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });
+
+// ── Security: Google sign-in on the website, the two-factor step, date of birth ──
+Route::middleware('guest')->group(function () {
+    // Google Identity Services posts its ID token here (App\Support\SocialSignIn).
+    Route::post('auth/google', [\App\Http\Controllers\Auth\GoogleSignInController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('auth.google');
+
+    // After a right password or Google, for an account with two-factor on.
+    Route::get('two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'create'])
+        ->name('two-factor.challenge');
+    Route::post('two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('two-factor.challenge.store');
+});
+
+Route::middleware('auth')->group(function () {
+    // An account made by Google or Apple gives its date of birth first (App\Http\Middleware\RequireBirthday).
+    Route::get('complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'create'])
+        ->name('profile.complete');
+    Route::put('complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'update'])
+        ->name('profile.complete.update');
+});
+// ── end Security ──

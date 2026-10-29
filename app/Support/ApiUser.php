@@ -22,6 +22,9 @@ class ApiUser
             'theme_mode'          => $user->theme_mode,
             'avatar_url'          => Accounts::avatarUrl($user),
             'birthday'            => $user->birthday?->toDateString(),
+            // True for an account Google or Apple sign-in just made: the app
+            // asks for the date of birth before going on. Saving one clears it.
+            'birthday_required'   => (bool) $user->birthday_required,
             'email_notifications' => (bool) ($user->email_notifications ?? true),
             // Settings › Reminders. A null time means the daily reminder is off.
             'daily_reminder_at'   => $user->daily_reminder_at,

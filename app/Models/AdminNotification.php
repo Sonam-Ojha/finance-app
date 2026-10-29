@@ -30,10 +30,16 @@ class AdminNotification extends Model
         'emails_failed'    => 'integer',
     ];
 
-    /** Emails go out after the page answers, so the counts can lag a moment behind. */
+    /** Emails go out from the queue (App\Jobs\SendAdminNotification), so the counts lag a minute or so behind. */
     public function emailsPending(): bool
     {
         return $this->via_email && $this->emails_sent + $this->emails_failed < $this->email_recipients;
+    }
+
+    /** Pushes go out from the queue too: still sending until every phone counts as delivered or failed. */
+    public function pushesPending(): bool
+    {
+        return $this->via_push && $this->status === self::STATUS_SENT && $this->delivered + $this->failed < $this->devices;
     }
 
     public function sender() { return $this->belongsTo(User::class, 'sent_by'); }

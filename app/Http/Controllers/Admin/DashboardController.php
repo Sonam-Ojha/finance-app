@@ -235,10 +235,30 @@ class DashboardController extends Controller
             ];
         }
 
+        // Help & support requests nobody has answered yet; urgent once one has waited a day.
+        $supportCount = \App\Models\SupportTicket::waitingCount();
+        if ($supportCount > 0) {
+            $oldest = \App\Models\SupportTicket::where('status', \App\Models\SupportTicket::OPEN)->min('updated_at');
+            array_unshift($items, [
+                'level' => $oldest && Carbon::parse($oldest)->lt(now()->subDay()) ? 'high' : 'medium',
+                'text'  => Counts::indian($supportCount) . ' support ' . ($supportCount === 1 ? 'request' : 'requests') . ' waiting',
+                'link'  => route('admin.support.index', ['status' => \App\Models\SupportTicket::OPEN]),
+                'cta'   => 'Reply',
+            ]);
+        }
+
+        if (\App\Support\AppControl::maintenance()) {
+            array_unshift($items, [
+                'level' => 'high',
+                'text'  => 'Maintenance mode is on: only admins can use the app and the website',
+                'link'  => route('admin.app-control'),
+                'cta'   => 'Open app control',
+            ]);
+        }
+
         // TODO: spam sign-ups from one IP address.
         // TODO: account deletion requests.
         // TODO: users below the minimum app version.
-        // TODO: open support tickets.
 
         return $items;
     }

@@ -21,3 +21,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# User uploads and server-only secrets — never in git
+/public/avatars/
+/storage/app/receipts/
+/storage/app/support/
+/storage/app/firebase-credentials.json

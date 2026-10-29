@@ -226,6 +226,30 @@ class ExportsReceiptsAndGoalsTest extends TrackerTestCase
             ->assertSessionHasErrors(['amount' => 'Enter an amount greater than zero.']);
     }
 
+    public function test_an_entry_is_deleted_from_the_goals_history(): void
+    {
+        $goal = $this->makeGoal();
+        $deposit    = Goals::contribute($goal, 500000, 'Bonus', '2026-10-20');
+        $withdrawal = Goals::contribute($goal, -300000, 'Dentist', '2026-10-22');
+
+        $this->get("/goals/{$goal->id}")->assertOk()
+            ->assertSee(route('goals.contributions.destroy', [$goal, $deposit->id]), false)
+            ->assertSee('Delete this entry?');
+
+        // Not while a withdrawal after it needs the money.
+        $this->delete("/goals/{$goal->id}/contributions/{$deposit->id}")
+            ->assertRedirect(route('goals.show', $goal))
+            ->assertSessionHas('error', 'Removing this would leave the goal below ₹0.00 — it holds ₹2,000.00. Remove a withdrawal first.');
+        $this->assertSame(200000, $goal->fresh()->saved_minor);
+
+        $this->delete("/goals/{$goal->id}/contributions/{$withdrawal->id}")
+            ->assertSessionHas('success', '₹3,000.00 withdrawn on 22 Oct 2026 removed');
+        $this->delete("/goals/{$goal->id}/contributions/{$deposit->id}")
+            ->assertSessionHas('success', '₹5,000.00 added on 20 Oct 2026 removed');
+        $this->assertSame(0, $goal->fresh()->saved_minor);
+        $this->get("/goals/{$goal->id}")->assertSee('Nothing added yet');
+    }
+
     public function test_reaching_the_target_is_celebrated(): void
     {
         $goal = $this->makeGoal(['target_minor' => 100000]);

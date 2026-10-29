@@ -16,6 +16,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'email.verified' => \App\Http\Middleware\RequireVerifiedEmail::class,
         ]);
+        // Admin › App control: maintenance mode on the website (admins pass),
+        // and maintenance (503) / minimum app version (426) on the API.
+        $middleware->web(append: [\App\Http\Middleware\WebMaintenance::class]);
+        // Before `auth`, so signed-out visitors see the maintenance page too, not the sign-in page.
+        $middleware->prependToPriorityList(\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class, \App\Http\Middleware\WebMaintenance::class);
+        $middleware->api(prepend: [\App\Http\Middleware\AppGate::class]);
+        // Security: a blocked account is signed out of the website / gets 403
+        // `account_blocked` from the API; a Google- or Apple-made account gives
+        // its date of birth on the website before anything else.
+        $middleware->web(append: [
+            \App\Http\Middleware\RejectBlockedUsers::class,
+            \App\Http\Middleware\RequireBirthday::class,
+        ]);
+        $middleware->api(append: [\App\Http\Middleware\RejectBlockedUsers::class . ':sanctum']);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -30,6 +30,16 @@
                                 <p class="text-xs muted">{{ \App\Support\Labels::dayHeading($entry->on_date->toDateString()) }}</p>
                             </div>
                             <span class="text-sm font-semibold {{ $in ? 'money-in' : 'money-out' }}">{{ $in ? '+' : '−' }}{{ $money->format(abs($entry->amount_minor)) }}</span>
+                            {{-- Remove an entry made by mistake (refused if the goal would go below zero) --}}
+                            <form method="POST" action="{{ route('goals.contributions.destroy', [$goal, $entry->id]) }}"
+                                  data-confirm-title="Delete this entry?"
+                                  data-confirm-message="{{ $in ? 'Added' : 'Withdrawn' }} {{ $money->format(abs($entry->amount_minor)) }} on {{ $entry->on_date->format('j M Y') }} is removed, and the goal's saved amount changes to match."
+                                  data-confirm-button="Delete">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="rounded-lg p-2 text-ink-muted hover:bg-red-50 hover:text-red-600 dark:text-night-muted dark:hover:bg-red-500/10" aria-label="Delete this entry of {{ $money->format(abs($entry->amount_minor)) }}">
+                                    <x-icon name="trash" class="h-4 w-4" />
+                                </button>
+                            </form>
                         </div>
                     @endforeach
                 </div>

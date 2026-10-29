@@ -161,7 +161,10 @@ class RemindersTest extends TestCase
 
     public function test_reminder_settings_on_the_website_and_in_the_app(): void
     {
-        $this->actingAs($this->user)->get('/settings')->assertOk()->assertSee('Daily reminder')->assertSee('Monthly summary email');
+        // One row in Settings (new accounts start at 9 PM); the switches live on their own page.
+        $this->user->refresh();
+        $this->actingAs($this->user)->get('/settings')->assertOk()->assertSee('Reminders')->assertSee('9:00 PM')->assertDontSee('Monthly summary email');
+        $this->actingAs($this->user)->get('/settings/reminders')->assertOk()->assertSee('Daily reminder')->assertSee('Monthly summary email');
         $this->actingAs($this->user)->put('/settings/reminders', ['daily_reminder_at' => '22:30'])->assertSessionHas('success');
         $this->actingAs($this->user)->put('/settings/reminders', ['monthly_summary' => 0]);
         $this->assertSame(['22:30', false], [$this->user->fresh()->daily_reminder_at, $this->user->fresh()->monthly_summary]);

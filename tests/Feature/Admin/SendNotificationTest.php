@@ -80,7 +80,8 @@ class SendNotificationTest extends TestCase
 
         $this->actingAs($this->admin)->post('/admin/notifications', [
             'title' => 'New feature', 'body' => 'Monthly budgets are here.', 'audience' => 'all', 'channels' => ['push'],
-        ])->assertRedirect('/admin/notifications')->assertSessionHas('error');
+        ])->assertRedirect('/admin/notifications')
+            ->assertSessionHas('success', 'Sent to all users. Sending to 3 phones — the counts appear in Sent shortly.');
 
         $sent = AdminNotification::firstOrFail();
         $this->assertSame([3, 2, 1, 'sent'], [$sent->devices, $sent->delivered, $sent->failed, $sent->status]);
@@ -151,7 +152,7 @@ class SendNotificationTest extends TestCase
         $this->actingAs($this->admin)->post('/admin/notifications', [
             'title' => 'Budgets are here', 'body' => "Set one per category.
 Try it today.", 'audience' => 'all', 'channels' => ['email'],
-        ])->assertSessionHas('success', 'Sent to all users. Emailing 2 users.');
+        ])->assertSessionHas('success', 'Sent to all users. Sending to 2 emails — the counts appear in Sent shortly.');
 
         Notification::assertSentTo($alice, AdminAnnouncement::class, function (AdminAnnouncement $mail) use ($alice) {
             $message = $mail->toMail($alice);
@@ -178,7 +179,7 @@ Try it today.";
 
         $this->actingAs($this->admin)->post('/admin/notifications', [
             'title' => 'Hi Alice', 'body' => 'Just for you.', 'audience' => 'user', 'email' => 'alice@example.com', 'channels' => ['push', 'email'],
-        ])->assertSessionHas('success', 'Sent to alice@example.com. Push delivered to 1 of 1 device(s). Emailing 1 user.');
+        ])->assertSessionHas('success', 'Sent to alice@example.com. Sending to 1 phone and 1 email — the counts appear in Sent shortly.');
 
         Notification::assertSentTo($alice, AdminAnnouncement::class);
         Notification::assertNotSentTo($this->admin, AdminAnnouncement::class);

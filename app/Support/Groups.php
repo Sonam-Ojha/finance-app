@@ -2,19 +2,22 @@
 
 namespace App\Support;
 
+use App\Jobs\SendPush;
+use App\Models\DeviceToken;
 use App\Models\Group;
 use App\Models\GroupExpense;
 use App\Models\GroupMember;
 use App\Models\GroupSettlement;
 use App\Models\User;
 use App\Notifications\AddedToGroup;
+use App\Notifications\GroupActivity;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
-
-use function Illuminate\Support\defer;
 
 /**
  * Groups' rules, shared by the API and the website: who is in a group, what
@@ -161,8 +164,10 @@ class Groups
         $group->touch();
         $group->load(Group::withMembers());
 
+        // A push to their phones, and always the "added you" email (it is how
+        // someone without the app finds the group).
         $others = $group->members->count() - 1;
-        self::push($user, self::firstName($actor) . ' added you to ' . $group->label(),
+        self::tell($user, self::firstName($actor) . ' added you to ' . $group->label(),
             $others > 1 ? "Split expenses with {$others} others and see who owes whom." : 'Split expenses and see who owes whom.', $group);
         self::mail($user, new AddedToGroup($group->label(), self::name($actor), $group->id));
 
@@ -295,11 +300,28 @@ class Groups
             if (! $recipient) continue;
             $payer = $userId === $from ? 'you' : $names[$from];
             $payee = $userId === $to ? 'you' : $names[$to];
-            self::push($recipient, $group->label(), self::firstName($actor) . " recorded that {$payer} paid {$payee} "
-                . DisplayCurrency::for($recipient)->format($amount) . " in {$group->name}.", $group);
+            $what  = self::firstName($actor) . " recorded that {$payer} paid {$payee} " . DisplayCurrency::for($recipient)->format($amount);
+            self::tell($recipient, $group->label(), "{$what} in {$group->name}.", $group,
+                new GroupActivity("{$group->label()} — {$what}", "{$what} in {$group->name}.", ['On ' . Carbon::parse($on)->format('j M Y')], $group->id));
         }
 
         return $settlement;
+    }
+
+    /** One of the group's recorded payments; a 404 when it belongs to another group. */
+    public static function findSettlement(Group $group, int|string $id): GroupSettlement
+    {
+        $settlement = ctype_digit((string) $id) ? GroupSettlement::where('group_id', $group->id)->find((int) $id) : null;
+        if (! $settlement) abort(404, 'Not found.');
+
+        return $settlement;
+    }
+
+    /** Undoes a recorded payment (any member may): the balances go back to what they were without it. */
+    public static function deleteSettlement(Group $group, GroupSettlement $settlement): void
+    {
+        $settlement->delete();
+        $group->touch();
     }
 
     /*
@@ -479,34 +501,40 @@ class Groups
                 $expense->paid_by === $member->user_id ? 'paid by you' : null,
                 $share > 0 ? 'your share ' . $money->format($share) : null,
             ]);
-            self::push($member->user, $group->label(), self::firstName($actor) . " added '{$expense->description}' "
-                . $money->format($expense->amount_minor) . " in {$group->name} — " . implode(', ', $parts), $group);
+            $what = self::firstName($actor) . " added '{$expense->description}' " . $money->format($expense->amount_minor);
+            self::tell($member->user, $group->label(), "{$what} in {$group->name} — " . implode(', ', $parts), $group,
+                new GroupActivity("{$group->label()} — {$what}", "{$what} in {$group->name}.", array_values(array_map('ucfirst', $parts)), $group->id));
         }
     }
 
-    /** After the response has gone, so a slow Firebase never delays a save. */
-    private static function push(User $user, string $title, string $body, Group $group): void
+    /**
+     * Tells $user about something in the group: a push to their phones, or —
+     * with no phone of theirs signed in — $email instead (if given, and they
+     * keep emails on). Never both. Either goes out from the queue, so a slow
+     * Firebase or mail server never delays a save, and a failure never breaks one.
+     */
+    private static function tell(User $user, string $title, string $body, Group $group, ?GroupActivity $email = null): void
     {
-        $data = ['type' => 'group', 'group_id' => (string) $group->id];
-        defer(function () use ($user, $title, $body, $data) {
+        if (DeviceToken::where('user_id', $user->id)->exists()) {
             try {
-                UserPush::send($user, $title, $body, $data);
+                SendPush::dispatch($user->id, $title, $body, ['type' => 'group', 'group_id' => (string) $group->id]);
             } catch (Throwable $e) {
                 report($e);
             }
-        });
+        } elseif ($email) {
+            self::mail($user, $email);
+        }
     }
 
-    private static function mail(User $user, AddedToGroup $notification): void
+    /** A queued email, for an account with an address and emails kept on. */
+    private static function mail(User $user, Notification $notification): void
     {
         if (! $user->email || $user->email_notifications === false) return;
-        defer(function () use ($user, $notification) {
-            try {
-                $user->notify($notification);
-            } catch (Throwable $e) {
-                report($e);
-            }
-        });
+        try {
+            $user->notify($notification);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private static function emoji(?string $emoji): string

@@ -2,7 +2,7 @@
     <x-slot name="title">Users</x-slot>
 
     <x-slot name="subtitle">
-        {{ \App\Support\Counts::indian($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}{{ $status ? ' not verified' : '' }}
+        {{ \App\Support\Counts::indian($users->total()) }} {{ \Illuminate\Support\Str::plural('account', $users->total()) }}{{ ['unverified' => ' not verified', 'blocked' => ' blocked'][$status] ?? '' }}
         · {{ $adminCount }} {{ \Illuminate\Support\Str::plural('admin', $adminCount) }}
     </x-slot>
     <x-slot name="actions">
@@ -19,7 +19,8 @@
 
     <nav class="adm-seg self-start" aria-label="Filter">
         <a href="{{ route('admin.users.index', array_filter(['q' => $search])) }}" class="adm-seg-item" @unless($status) aria-current="page" @endunless>Everyone</a>
-        <a href="{{ route('admin.users.index', array_filter(['q' => $search, 'status' => 'unverified'])) }}" class="adm-seg-item" @if($status) aria-current="page" @endif>Not verified</a>
+        <a href="{{ route('admin.users.index', array_filter(['q' => $search, 'status' => 'unverified'])) }}" class="adm-seg-item" @if($status === 'unverified') aria-current="page" @endif>Not verified</a>
+        <a href="{{ route('admin.users.index', array_filter(['q' => $search, 'status' => 'blocked'])) }}" class="adm-seg-item" @if($status === 'blocked') aria-current="page" @endif>Blocked</a>
     </nav>
 
     <section class="adm-card min-w-0">
@@ -32,7 +33,7 @@
                         <th scope="col" class="adm-th">Status</th>
                         <th scope="col" class="adm-th">Phones</th>
                         <th scope="col" class="adm-th">Joined</th>
-                        <th scope="col" class="adm-th text-right">Admin access</th>
+                        <th scope="col" class="adm-th text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,7 +56,9 @@
                                 @endif
                             </td>
                             <td class="adm-td">
-                                @if($user->email_verified_at)
+                                @if($user->isBlocked())
+                                    <span class="adm-badge-high" title="Blocked {{ $user->blocked_at->timezone(config('app.display_timezone'))->format('j M Y') }}">Blocked</span>
+                                @elseif($user->email_verified_at)
                                     <span class="inline-flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-status-success" aria-hidden="true"></span>Active</span>
                                 @else
                                     <span class="adm-badge-medium">Not verified</span>
@@ -66,6 +69,15 @@
                             <td class="adm-td whitespace-nowrap text-right">
                                 @if($user->is(auth()->user()))
                                     <span class="adm-caption">You</span>
+                                @elseif($user->isBlocked())
+                                    {{-- Security: blocked accounts can only be unblocked here --}}
+                                    <form method="POST" action="{{ route('admin.users.unblock', $user) }}"
+                                          data-confirm-title="Unblock this user?"
+                                          data-confirm-message="{{ $user->email }} will be able to sign in again."
+                                          data-confirm-button="Unblock">
+                                        @csrf @method('DELETE')
+                                        <button class="adm-btn-outline !h-11 !px-4 !text-sm">Unblock</button>
+                                    </form>
                                 @elseif($user->isAdmin())
                                     <form method="POST" action="{{ route('admin.users.role', $user) }}"
                                           data-confirm-title="Remove admin access?"
@@ -76,21 +88,31 @@
                                         <button class="min-h-11 px-2 text-sm font-semibold text-status-error hover:underline">Remove admin</button>
                                     </form>
                                 @else
-                                    <form method="POST" action="{{ route('admin.users.role', $user) }}"
-                                          data-confirm-title="Make this user an admin?"
-                                          data-confirm-message="{{ $user->email }} will be able to send notifications and manage admins."
-                                          data-confirm-button="Make admin">
-                                        @csrf @method('PATCH')
-                                        <input type="hidden" name="role" value="admin">
-                                        <button class="adm-btn-outline !h-11 !px-4 !text-sm">Make admin</button>
-                                    </form>
+                                    <div class="inline-flex items-center gap-1">
+                                        <form method="POST" action="{{ route('admin.users.role', $user) }}"
+                                              data-confirm-title="Make this user an admin?"
+                                              data-confirm-message="{{ $user->email }} will be able to send notifications and manage admins."
+                                              data-confirm-button="Make admin">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" name="role" value="admin">
+                                            <button class="adm-btn-outline !h-11 !px-4 !text-sm">Make admin</button>
+                                        </form>
+                                        {{-- Security: block (admins must lose admin access first) --}}
+                                        <form method="POST" action="{{ route('admin.users.block', $user) }}"
+                                              data-confirm-title="Block this user?"
+                                              data-confirm-message="{{ $user->email }} will be signed out of the app and the website everywhere, and will not be able to sign in until unblocked."
+                                              data-confirm-button="Block">
+                                            @csrf
+                                            <button class="min-h-11 px-2 text-sm font-semibold text-status-error hover:underline">Block</button>
+                                        </form>
+                                    </div>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="6" class="adm-td py-10 text-center text-ink-muted">
-                                {{ $search !== '' ? "No user matches \"{$search}\"." : ($status ? 'Everyone has verified their email.' : 'No users yet.') }}
+                                {{ $search !== '' ? "No user matches \"{$search}\"." : (['unverified' => 'Everyone has verified their email.', 'blocked' => 'Nobody is blocked.'][$status] ?? 'No users yet.') }}
                             </td>
                         </tr>
                     @endforelse

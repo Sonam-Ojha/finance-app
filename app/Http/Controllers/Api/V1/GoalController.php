@@ -104,6 +104,15 @@ class GoalController extends Controller
         return response()->json(['data' => $goal->fresh()->toApiShape()]);
     }
 
+    /** Removes one contribution. 422 (errors.contribution) when the goal would go below zero. Returns the goal. */
+    public function destroyContribution(Request $request, SavingsGoal $goal, string $contributionId)
+    {
+        $this->authorizeOwner($goal, $request->user());
+        Goals::deleteContribution($goal, $contributionId);
+
+        return response()->json(['data' => $goal->fresh()->toApiShape()]);
+    }
+
     private function authorizeOwner(SavingsGoal $goal, $user): void
     {
         if ($goal->user_id !== $user->id) abort(404, 'Not found.');

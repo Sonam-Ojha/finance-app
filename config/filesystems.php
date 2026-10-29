@@ -47,6 +47,15 @@ return [
             'report' => false,
         ],
 
+        // Screenshots sent with support requests: private, served only to the
+        // ticket's user and to admins (App\Support\SupportTickets). No URL.
+        'support' => [
+            'driver' => 'local',
+            'root' => storage_path('app/support'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

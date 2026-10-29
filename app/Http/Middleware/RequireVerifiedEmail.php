@@ -9,7 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * An account whose email is not verified yet can only verify it, fix it,
  * or leave. The website sends it to the code page; the API answers 403
- * `email_unverified` — once `services.email_check.required_for_api` is on.
+ * `email_unverified` — once Admin › App control requires it (falling back to
+ * `services.email_check.required_for_api` until that switch is used).
  */
 class RequireVerifiedEmail
 {
@@ -22,7 +23,8 @@ class RequireVerifiedEmail
         if (! $user || $user->email_verified_at) return $next($request);
 
         if ($request->is('api/*')) {
-            if (! config('services.email_check.required_for_api') || $request->is(...self::API_OPEN)) {
+            // Admin › App control's switch; until it is used, services.email_check.required_for_api.
+            if (! \App\Support\AppControl::emailVerificationRequired() || $request->is(...self::API_OPEN)) {
                 return $next($request);
             }
 

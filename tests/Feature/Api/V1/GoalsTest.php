@@ -125,6 +125,36 @@ class GoalsTest extends ApiTestCase
         $this->contribute($id, -300000)->assertOk()->assertJsonPath('data.saved_minor', 0);
     }
 
+    public function test_a_contribution_is_deleted_but_never_below_zero(): void
+    {
+        $id = $this->goal()['id'];
+        $this->contribute($id, 500000)->assertOk();
+        $this->contribute($id, -300000)->assertOk();
+        [$withdrawal, $deposit] = array_column($this->getJson("/api/v1/goals/{$id}/contributions")->json('data'), 'id');
+
+        // Taking the ₹5,000 out first would leave the goal at −₹3,000.
+        $this->deleteJson("/api/v1/goals/{$id}/contributions/{$deposit}")->assertStatus(422)
+            ->assertJsonPath('errors.contribution.0', 'Removing this would leave the goal below ₹0.00 — it holds ₹2,000.00. Remove a withdrawal first.');
+        $this->assertSame(200000, SavingsGoal::find($id)->saved_minor);
+
+        // The withdrawal goes, then the deposit; the goal comes back each time.
+        $this->deleteJson("/api/v1/goals/{$id}/contributions/{$withdrawal}")->assertOk()
+            ->assertJsonPath('data.id', $id)->assertJsonPath('data.saved_minor', 500000);
+        $this->deleteJson("/api/v1/goals/{$id}/contributions/{$deposit}")->assertOk()->assertJsonPath('data.saved_minor', 0);
+        $this->assertSame(0, GoalContribution::where('goal_id', $id)->count());
+        $this->deleteJson("/api/v1/goals/{$id}/contributions/{$deposit}")->assertNotFound();
+
+        // Another goal's entry, or someone else's goal: not found.
+        $mine = $this->contribute($this->goal(['name' => 'Bike'])['id'], 100)->json('data.id');
+        $entry = GoalContribution::where('goal_id', $mine)->value('id');
+        $this->deleteJson("/api/v1/goals/{$id}/contributions/{$entry}")->assertNotFound();
+        $other = $this->makeUser(['email' => 'other@example.com']);
+        $theirs = SavingsGoal::create(['user_id' => $other->id, 'name' => 'Theirs', 'emoji' => '🎯', 'color' => '#DA2020', 'target_minor' => 100]);
+        $theirEntry = $theirs->contributions()->create(['amount_minor' => 50, 'on_date' => '2026-10-01'])->id;
+        $this->deleteJson("/api/v1/goals/{$theirs->id}/contributions/{$theirEntry}")->assertNotFound();
+        $this->assertSame(1, GoalContribution::whereKey($theirEntry)->count());
+    }
+
     public function test_bad_contributions_are_refused_with_sentences(): void
     {
         $id = $this->goal()['id'];

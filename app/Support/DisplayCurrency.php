@@ -35,19 +35,22 @@ class DisplayCurrency
         public readonly bool $custom = false,
     ) {}
 
-    /** Every currency on offer: the built-in ones first, then the user's own. */
+    /** Every currency on offer (Admin › Currencies) first, then the user's own. */
     public static function allFor(User $user): array
     {
         $rows = $user->userCurrencies()->orderBy('id')->get()->keyBy('code');
 
         $list = [];
-        foreach (Currencies::BUILT_IN as $code => $meta) {
+        foreach (Currencies::all() as $code => $meta) {
             $rate = $code === Currencies::BASE ? 1.0 : (isset($rows[$code]) ? (float) $rows[$code]->rate : null);
             $list[] = new self($code, $meta['symbol'], $meta['decimals'], $meta['label'], $rate);
         }
         foreach ($rows as $code => $row) {
             if (Currencies::isBuiltIn($code)) continue;
-            $list[] = new self($code, $row->symbol ?: $code, 2, $row->label ?: $code, (float) $row->rate, true);
+            // One an admin switched off keeps its look for whoever already set a rate for it.
+            $known = Currencies::meta($code);
+            $list[] = new self($code, $row->symbol ?: ($known['symbol'] ?? $code), $known['decimals'] ?? 2,
+                $row->label ?: ($known['label'] ?? $code), (float) $row->rate, true);
         }
 
         return $list;

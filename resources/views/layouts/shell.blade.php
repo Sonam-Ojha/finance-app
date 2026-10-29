@@ -22,12 +22,12 @@
     $nav = $admin ? [
         ['admin.dashboard', 'Dashboard', 'chart', ['admin.dashboard']],
         ['admin.users.index', 'Users', 'users', ['admin.users.*']],
-        [null, 'Default categories', 'tag', []],
-        [null, 'Currencies & banks', 'money', []],
+        ['admin.default-categories.index', 'Default categories', 'tag', ['admin.default-categories.*']],
+        ['admin.currencies.index', 'Currencies', 'money', ['admin.currencies.*']],
         ['admin.notifications.index', 'Notifications', 'megaphone', ['admin.notifications.*']],
-        [null, 'App control', 'adjustments', []],
-        // TODO: a count badge once support tickets exist.
-        [null, 'Support', 'envelope', []],
+        ['admin.app-control', 'App control', 'adjustments', ['admin.app-control*']],
+        // Badge: requests waiting for a reply.
+        ['admin.support.index', 'Support', 'envelope', ['admin.support.*']],
         ['admin.activity.index', 'Activity log', 'list', ['admin.activity.*']],
         ['admin.settings', 'Settings', 'cog', ['admin.settings']],
     ] : [
@@ -41,12 +41,14 @@
         ['groups.index', 'Groups', 'users', ['groups.*']],
         ['categories.index', 'Categories', 'tag', ['categories.*']],
         ['notifications.index', 'Notifications', 'bell', ['notifications.*']],
-        ['settings.index', 'Settings', 'cog', ['settings.*', 'currency.*', 'about', 'profile.*', 'account.*']],
+        ['settings.index', 'Settings', 'cog', ['settings.*', 'currency.*', 'about', 'profile.*', 'account.*', 'support.*']],
     ];
     // The phone's bottom tabs, picked by route so new sidebar links never shift them.
     $tabRoutes = ['dashboard', 'transactions.index', 'analytics.index', 'settings.index'];
     $mobileTabs = $admin ? [] : array_values(array_filter($nav, fn ($item) => in_array($item[0], $tabRoutes, true)));
     $alerts = $admin ? 0 : $overBudget;
+    // Admin › Support's badge: requests waiting for a reply.
+    $supportWaiting = $admin ? \App\Models\SupportTicket::waitingCount() : 0;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $theme === 'dark' ? 'dark' : '' }}">
@@ -110,6 +112,9 @@
                         <span class="flex-1">{{ $label }}</span>
                         @if($route === 'notifications.index' && $alerts > 0)
                             <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-error px-1.5 text-xs font-semibold text-white">{{ $alerts }}</span>
+                        @endif
+                        @if($route === 'admin.support.index' && $supportWaiting > 0)
+                            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-status-error px-1.5 text-xs font-semibold text-white">{{ $supportWaiting > 99 ? '99+' : $supportWaiting }}<span class="sr-only">&nbsp;waiting</span></span>
                         @endif
                     </a>
                 @else

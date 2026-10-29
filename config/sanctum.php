@@ -50,7 +50,13 @@ return [
     |
     */
 
-    'expiration' => null,
+    // The app's sign-ins end a year after they were made (in minutes)...
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 365),
+
+    // ...or after 90 days without use (minutes; last_used_at, else
+    // created_at). Checked in App\Providers\SecurityServiceProvider, pruned
+    // daily by `tokens:prune-idle`. 0 turns it off.
+    'inactivity_expiration' => (int) env('SANCTUM_INACTIVITY_EXPIRATION', 60 * 24 * 90),
 
     /*
     |--------------------------------------------------------------------------

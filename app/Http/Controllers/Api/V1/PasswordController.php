@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\SignOut;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -41,7 +42,8 @@ class PasswordController extends Controller
                     'pin'      => null,
                 ])->save();
 
-                $user->tokens()->delete();
+                // Every sign-in ends — the app's, its phones' pushes, the website's.
+                SignOut::everywhere($user);
             }
         );
 

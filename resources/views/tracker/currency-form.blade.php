@@ -2,7 +2,10 @@
     <x-slot name="title">{{ $currency ? $currency->label : 'Add currency' }}</x-slot>
     @php
         $custom = ! $currency || $currency->custom;
-        $rateValue = old('rate', $currency?->rate ? rtrim(rtrim(number_format($currency->rate, 6, '.', ''), '0'), '.') : '');
+        // No rate of their own yet: start from the one Admin › Currencies suggests, if any.
+        $suggested = $currency && ! $currency->custom && ! $currency->rate ? \App\Support\Currencies::defaultRate($currency->code) : null;
+        $rateText = fn (?float $rate) => $rate ? rtrim(rtrim(number_format($rate, 6, '.', ''), '0'), '.') : '';
+        $rateValue = old('rate', $rateText($currency?->rate ?: $suggested));
         $selected = $currency && auth()->user()->currency === $currency->code;
     @endphp
 
@@ -57,6 +60,9 @@
                        @input="rate = rate.replace(',', '.').replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')"
                        placeholder="e.g. 83.25" class="input" required>
                 @error('rate')<p class="field-error">{{ $message }}</p>@enderror
+                @if($suggested)
+                    <p class="mt-2 text-xs muted">We filled in a recent rate. Check it against today's before you save.</p>
+                @endif
                 <p class="mt-2 text-xs muted">
                     <span x-show="preview()">₹1,000.00 will show as <span class="font-semibold strong" x-text="preview()"></span>.</span>
                     <span x-show="! preview()">Amounts stay in rupees and are converted with this when <span x-text="code || 'it'"></span> is picked.</span>

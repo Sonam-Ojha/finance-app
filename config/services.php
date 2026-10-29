@@ -44,6 +44,10 @@ return [
 
     'google' => [
         'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
+        // The website's "Continue with Google" button (Google Identity
+        // Services): the web OAuth client. Its tokens are accepted too.
+        // Client IDs are public; empty hides the button.
+        'web_client_id' => env('GOOGLE_WEB_CLIENT_ID', '822356009808-sagdlr22ep73tfq44fpgatacnl4g4rhg.apps.googleusercontent.com'),
     ],
 
     'apple' => [

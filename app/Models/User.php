@@ -13,11 +13,18 @@ class User extends Authenticatable
 
     protected $fillable = ['name', 'email', 'mobile', 'password', 'pin', 'avatar', 'onboarded', 'currency', 'theme_mode', 'sidebar_color', 'import_completed_at', 'birthday', 'email_notifications', 'google_id', 'apple_id', 'daily_reminder_at', 'budget_alert_push', 'monthly_summary'];
 
-    protected $hidden = ['password', 'remember_token', 'pin', 'google_id', 'apple_id'];
+    protected $hidden = ['password', 'remember_token', 'pin', 'google_id', 'apple_id', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected function casts(): array
     {
         return [
+            // Security (App\Support\SignOut, App\Support\TwoFactor). None of
+            // these is fillable: they change through forceFill only.
+            'blocked_at'                => 'datetime',
+            'two_factor_secret'         => 'encrypted',
+            'two_factor_recovery_codes' => 'array',
+            'two_factor_confirmed_at'   => 'datetime',
+            'birthday_required'         => 'boolean',
             'email_verified_at'   => 'datetime',
             'import_completed_at' => 'datetime',
             'password'            => 'hashed',
@@ -28,6 +35,30 @@ class User extends Authenticatable
             'monthly_summary'     => 'boolean',
             'last_reminded_on'    => 'date',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // A saved date of birth answers the "Complete your profile" step that
+        // an account made with Google or Apple starts with.
+        static::saving(function (User $user) {
+            if ($user->birthday !== null && $user->birthday_required) {
+                $user->birthday_required = false;
+            }
+        });
+    }
+
+    /** Blocked in Admin › Users: cannot sign in anywhere. */
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
+    }
+
+    /** Signing in on the website asks for an authenticator code after the password. */
+    public function hasTwoFactor(): bool
+    {
+        // The raw column: no need to decrypt the secret to know there is one.
+        return $this->two_factor_confirmed_at !== null && ($this->getAttributes()['two_factor_secret'] ?? null) !== null;
     }
 
     public function getHasPinAttribute(): bool

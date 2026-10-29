@@ -42,6 +42,20 @@
             @error('email')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
+        {{-- Date of birth: required for a new account (at least 1, at most 120 years old) --}}
+        <div class="field-group">
+            <label class="field-label" for="birthday">Date of Birth</label>
+            <div class="field-wrap">
+                <input type="date" name="birthday" id="birthday"
+                       value="{{ old('birthday') }}"
+                       required autocomplete="bday"
+                       min="{{ $oldest ?? '' }}" max="{{ $youngest ?? '' }}"
+                       style="padding-right:14px"
+                       class="field-input {{ $errors->has('birthday') ? 'is-error' : '' }}">
+            </div>
+            @error('birthday')<div class="field-error">{{ $message }}</div>@enderror
+        </div>
+
         {{-- Password --}}
         <div class="field-group">
             <label class="field-label">Password</label>
@@ -77,6 +91,9 @@
         </div>
 
         <button type="submit" class="btn-primary" style="margin-top:4px">Create Account &rarr;</button>
+
+        {{-- Security: Continue with Google --}}
+        @include('auth.partials.google-button', ['context' => 'signup'])
 
         <div class="divider">
             <div class="divider-line"></div>

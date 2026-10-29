@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\User;
 use App\Notifications\AddedToGroup;
+use App\Notifications\GroupActivity;
 use App\Support\Groups;
 use App\Support\Labels;
 use Illuminate\Support\Facades\Notification;
@@ -325,6 +326,93 @@ class GroupsTest extends ApiTestCase
         $this->postJson("/api/v1/groups/{$id}/settlements", ['from_user_id' => $this->rishi->id, 'to_user_id' => $this->asha->id, 'amount_minor' => 0])
             ->assertStatus(422)->assertJsonPath('errors.amount_minor.0', 'Enter an amount greater than zero.');
         $this->assertDatabaseCount('group_settlements', 2);
+    }
+
+    public function test_a_recorded_payment_can_be_undone_by_any_member(): void
+    {
+        $id = $this->trio();
+        $this->addExpense($id, ['amount_minor' => 900, 'paid_by' => $this->asha->id, 'split' => 'equal',
+            'participants' => [$this->asha->id, $this->rishi->id, $this->meera->id]])->assertCreated();
+        $payment = $this->actAs($this->rishi)->postJson("/api/v1/groups/{$id}/settlements", ['from_user_id' => $this->rishi->id, 'to_user_id' => $this->asha->id, 'amount_minor' => 300])
+            ->assertCreated()->json('data.recent_settlements.0.id');
+        $this->assertSame([$this->asha->id => 300, $this->rishi->id => 0, $this->meera->id => -300], $this->balances($id));
+
+        // Meera, who did not record it, takes it back: the group comes back as it was without it.
+        $this->actAs($this->meera)->deleteJson("/api/v1/groups/{$id}/settlements/{$payment}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $id)
+            ->assertJsonPath('data.recent_settlements', [])
+            ->assertJsonPath('data.my_balance_minor', -300);
+        $this->assertSame([$this->asha->id => 600, $this->rishi->id => -300, $this->meera->id => -300], $this->balances($id));
+        $this->deleteJson("/api/v1/groups/{$id}/settlements/{$payment}")->assertNotFound();
+
+        // Only a payment of this group, and only for its members.
+        $this->actAs($this->asha);
+        $other = $this->postJson('/api/v1/groups', ['name' => 'Office'])->json('data.id');
+        $this->postJson("/api/v1/groups/{$other}/members", ['email' => 'rishi@example.com'])->assertOk();
+        $theirs = $this->postJson("/api/v1/groups/{$other}/settlements", ['from_user_id' => $this->rishi->id, 'to_user_id' => $this->asha->id, 'amount_minor' => 100])
+            ->json('data.recent_settlements.0.id');
+        $this->deleteJson("/api/v1/groups/{$id}/settlements/{$theirs}")->assertNotFound();
+        $this->actAs($this->meera)->deleteJson("/api/v1/groups/{$other}/settlements/{$theirs}")->assertNotFound();
+        $this->assertDatabaseHas('group_settlements', ['id' => $theirs]);
+    }
+
+    public function test_a_member_with_no_phone_is_emailed_instead_of_pushed(): void
+    {
+        $this->fakeFirebase();
+        $this->phone($this->rishi, 'rishi-phone'); // Rishi has the app signed in; Meera does not
+        $id = $this->trio();
+
+        $this->addExpense($id, ['amount_minor' => 600000, 'paid_by' => $this->asha->id, 'split' => 'equal',
+            'participants' => [$this->asha->id, $this->rishi->id, $this->meera->id]])->assertCreated();
+
+        // Rishi: the push only.
+        $this->assertSame(['title' => '🏖️ Goa trip', 'body' => "Asha added 'Dinner' ₹6,000.00 in Goa trip — your share ₹2,000.00"], last($this->pushes()));
+        Notification::assertNotSentTo($this->rishi, GroupActivity::class);
+        // Meera: the same news by email, with a way into the group.
+        Notification::assertSentTo($this->meera, GroupActivity::class, function (GroupActivity $mail) use ($id) {
+            $html = (string) $mail->toMail($this->meera)->render();
+
+            return $mail->subject === "🏖️ Goa trip — Asha added 'Dinner' ₹6,000.00"
+                && $mail->lines === ['Your share ₹2,000.00']
+                && str_contains($html, 'Your share ₹2,000.00') && str_contains($html, 'Open the group') && str_contains($html, "/groups/{$id}");
+        });
+
+        // A payment recorded for Meera reaches her by email too.
+        $this->postJson("/api/v1/groups/{$id}/settlements", ['from_user_id' => $this->meera->id, 'to_user_id' => $this->asha->id, 'amount_minor' => 200000, 'on' => '2026-10-25'])->assertCreated();
+        Notification::assertSentTo($this->meera, GroupActivity::class, fn (GroupActivity $mail) => $mail->subject === '🏖️ Goa trip — Asha recorded that you paid Asha Rao ₹2,000.00'
+            && $mail->lines === ['On 25 Oct 2026']);
+        Notification::assertSentToTimes($this->meera, GroupActivity::class, 2);
+        Notification::assertNotSentTo($this->rishi, GroupActivity::class);
+    }
+
+    public function test_a_member_with_emails_off_and_no_phone_gets_neither(): void
+    {
+        $this->fakeFirebase();
+        $this->meera->update(['email_notifications' => false]);
+        $id = $this->trio();
+
+        $this->addExpense($id, ['amount_minor' => 900, 'paid_by' => $this->asha->id, 'split' => 'equal',
+            'participants' => [$this->asha->id, $this->meera->id]])->assertCreated();
+
+        Notification::assertNotSentTo($this->meera, GroupActivity::class);
+        Notification::assertNotSentTo($this->meera, AddedToGroup::class);
+        $this->assertSame([], $this->pushes());
+    }
+
+    public function test_deleting_an_account_takes_them_out_of_their_groups_and_removes_the_empty_ones(): void
+    {
+        $shared = $this->trio();
+        $this->actAs($this->meera);
+        $solo = $this->postJson('/api/v1/groups', ['name' => 'Just me'])->json('data.id');
+        $this->addExpense($solo, ['amount_minor' => 500, 'paid_by' => $this->meera->id, 'split' => 'equal', 'participants' => [$this->meera->id]])->assertCreated();
+
+        \App\Support\Accounts::delete($this->meera);
+
+        $this->assertDatabaseMissing('group_members', ['user_id' => $this->meera->id]);
+        $this->assertDatabaseMissing('groups', ['id' => $solo]);
+        $this->assertDatabaseMissing('group_expenses', ['group_id' => $solo]);
+        $this->actAs($this->asha)->getJson("/api/v1/groups/{$shared}")->assertOk()->assertJsonPath('data.member_count', 2);
     }
 
     public function test_the_others_are_pushed_when_added_and_when_an_expense_involves_them(): void

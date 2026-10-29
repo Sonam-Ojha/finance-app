@@ -2,20 +2,23 @@
 
 namespace App\Support;
 
+use App\Jobs\SendAdminNotification;
 use App\Models\AdminNotification;
 use App\Models\DeviceToken;
 use App\Models\ScheduledNotification;
 use App\Models\User;
-use App\Notifications\AdminAnnouncement;
 use Illuminate\Database\Eloquent\Builder;
-use Throwable;
-
-use function Illuminate\Support\defer;
+use Illuminate\Support\Str;
 
 /**
  * Sends one admin notification — by push, email or both — and keeps it for
  * the app's inbox and the admin's Sent list. Used by Admin › Notifications
  * ("Send now") and by `notifications:send-scheduled`.
+ *
+ * The row is saved at once (so it is in every inbox straight away); the
+ * pushes and emails go out from the queue in small batches
+ * (App\Jobs\SendAdminNotification), each adding to the row's counts. Until
+ * they are all in, the Sent list says "sending…".
  */
 class AdminNotifier
 {
@@ -26,9 +29,6 @@ class AdminNotifier
     }
 
     /**
-     * Emails go out after the page has answered when `$afterResponse` (a
-     * click in the admin pages), and straight away from the scheduler.
-     *
      * @return array{notification: AdminNotification, notes: list<string>, problem: bool}
      */
     public static function send(
@@ -38,15 +38,14 @@ class AdminNotifier
         ?User $target,
         bool $viaPush,
         bool $viaEmail,
-        bool $afterResponse = true,
         ?ScheduledNotification $schedule = null,
     ): array {
         $tokens = $viaPush
             ? DeviceToken::query()->when($target, fn ($q) => $q->where('user_id', $target->id))->pluck('token')->all()
             : [];
         $emailIds = $viaEmail
-            ? self::wantsEmail(User::query())->when($target, fn ($q) => $q->whereKey($target->id))->pluck('id')
-            : collect();
+            ? self::wantsEmail(User::query())->when($target, fn ($q) => $q->whereKey($target->id))->pluck('id')->all()
+            : [];
         $configured = Fcm::configured();
 
         $notification = AdminNotification::create([
@@ -60,11 +59,12 @@ class AdminNotifier
             'via_email'                 => $viaEmail,
             'status'                    => $configured || ! $viaPush ? AdminNotification::STATUS_SENT : AdminNotification::STATUS_NOT_CONFIGURED,
             'devices'                   => count($tokens),
-            'email_recipients'          => $emailIds->count(),
+            'email_recipients'          => count($emailIds),
         ]);
 
         $notes = [];
         $problem = false;
+        $sending = [];
 
         if ($viaPush) {
             if (! $configured) {
@@ -73,53 +73,31 @@ class AdminNotifier
             } elseif (! $tokens) {
                 $notes[] = 'No phone is signed in yet, so nothing was pushed. It is saved in the app\'s notification list.';
             } else {
-                $result = Fcm::send($tokens, $title, $body, ['type' => 'admin', 'id' => (string) $notification->id]);
-                $notification->update(['delivered' => $result['delivered'], 'failed' => $result['failed']]);
-                // Tokens from phones that removed the app: no use keeping them.
-                if ($result['invalid']) DeviceToken::whereIn('token', $result['invalid'])->delete();
-                $problem = $result['failed'] > 0;
-                $notes[] = "Push delivered to {$result['delivered']} of " . count($tokens) . ' device(s).';
+                $sending[] = count($tokens) . ' ' . Str::plural('phone', count($tokens));
             }
         }
 
-        if ($viaEmail) {
-            if ($emailIds->isEmpty()) {
-                $notes[] = $target ? "{$target->email} turned emails off, so no email went out." : 'No user has emails turned on, so no email went out.';
-            } else {
-                self::sendEmails($notification, $emailIds->all(), $afterResponse);
-                $notes[] = 'Emailing ' . $emailIds->count() . ' ' . ($emailIds->count() === 1 ? 'user' : 'users') . '.';
+        if ($viaEmail && ! $emailIds) {
+            $notes[] = $target ? "{$target->email} turned emails off, so no email went out." : 'No user has emails turned on, so no email went out.';
+        } elseif ($emailIds) {
+            $sending[] = count($emailIds) . ' ' . Str::plural('email', count($emailIds));
+        }
+
+        if ($sending) {
+            $notes[] = 'Sending to ' . implode(' and ', $sending) . ' — the counts appear in Sent shortly.';
+        }
+
+        // Queued once the message above is worded: with the sync queue (tests,
+        // local) the batches run right here.
+        if ($viaPush && $configured) {
+            foreach (array_chunk($tokens, SendAdminNotification::PUSH_BATCH) as $batch) {
+                SendAdminNotification::dispatch($notification->id, $batch, []);
             }
+        }
+        foreach (array_chunk($emailIds, SendAdminNotification::EMAIL_BATCH) as $batch) {
+            SendAdminNotification::dispatch($notification->id, [], $batch);
         }
 
         return ['notification' => $notification, 'notes' => $notes, 'problem' => $problem];
-    }
-
-    /**
-     * One email each. From a web request they go after the page has
-     * answered, so a slow mail server never holds up the admin — and no
-     * queue worker is needed on the server.
-     *
-     * @param list<int> $ids
-     */
-    private static function sendEmails(AdminNotification $notification, array $ids, bool $afterResponse): void
-    {
-        $announcement = new AdminAnnouncement($notification->title, $notification->body);
-        $send = function () use ($notification, $ids, $announcement) {
-            ignore_user_abort(true);
-            @set_time_limit(0);
-            $sent = $failed = 0;
-            foreach (User::whereIn('id', $ids)->lazyById(100) as $user) {
-                try {
-                    $user->notify($announcement);
-                    $sent++;
-                } catch (Throwable $e) {
-                    report($e);
-                    $failed++;
-                }
-            }
-            $notification->update(['emails_sent' => $sent, 'emails_failed' => $failed]);
-        };
-
-        $afterResponse ? defer($send) : $send();
     }
 }

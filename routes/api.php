@@ -1,68 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\IncomeController;
-use App\Http\Controllers\Api\ExpenseController;
-use App\Http\Controllers\Api\BankAccountController;
-use App\Http\Controllers\Api\CreditCardController;
-use App\Http\Controllers\Api\LoanController;
-use App\Http\Controllers\Api\InvestmentController;
-use App\Http\Controllers\Api\CommissionController;
-use App\Http\Controllers\Api\CashbackController;
-use App\Http\Controllers\Api\BadDebtController;
-use App\Http\Controllers\Api\ContactController;
-use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\SettingsController;
 
-// Public auth routes
-Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
-});
-
-// Protected routes
-Route::middleware('auth:sanctum')->name('api.')->group(function () {
-
-    Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
-    Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
-
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    Route::apiResource('income', IncomeController::class);
-    Route::apiResource('expense', ExpenseController::class);
-    Route::apiResource('bank', BankAccountController::class);
-    Route::post('bank/{bank}/transaction', [BankAccountController::class, 'storeTransaction'])->name('bank.transaction.store');
-    Route::apiResource('credit-card', CreditCardController::class);
-    Route::post('credit-card/{creditCard}/transaction', [CreditCardController::class, 'storeTransaction'])->name('credit-card.transaction.store');
-    Route::apiResource('loan', LoanController::class);
-    Route::post('loan/{loan}/payment', [LoanController::class, 'storePayment'])->name('loan.payment.store');
-    Route::apiResource('investment', InvestmentController::class);
-    Route::apiResource('commission', CommissionController::class);
-    Route::apiResource('cashback', CashbackController::class);
-    Route::apiResource('bad-debt', BadDebtController::class);
-    Route::apiResource('contact', ContactController::class);
-    Route::post('contact/{contact}/transaction', [ContactController::class, 'storeTransaction'])->name('contact.transaction.store');
-    Route::apiResource('reminder', ReminderController::class);
-    Route::patch('reminder/{reminder}/done', [ReminderController::class, 'markDone'])->name('reminder.done');
-
-    Route::get('report', [ReportController::class, 'index'])->name('report');
-
-    // Settings / Masters
-    Route::get('settings', [SettingsController::class, 'index'])->name('settings');
-    Route::post('settings/expense-category', [SettingsController::class, 'storeExpenseCategory'])->name('settings.expense-category.store');
-    Route::delete('settings/expense-category/{expenseCategory}', [SettingsController::class, 'destroyExpenseCategory'])->name('settings.expense-category.destroy');
-    Route::post('settings/income-category', [SettingsController::class, 'storeIncomeCategory'])->name('settings.income-category.store');
-    Route::delete('settings/income-category/{incomeCategory}', [SettingsController::class, 'destroyIncomeCategory'])->name('settings.income-category.destroy');
-    Route::post('settings/payment-mode', [SettingsController::class, 'storePaymentMode'])->name('settings.payment-mode.store');
-    Route::delete('settings/payment-mode/{paymentMode}', [SettingsController::class, 'destroyPaymentMode'])->name('settings.payment-mode.destroy');
-    Route::post('settings/investment-category', [SettingsController::class, 'storeInvestmentCategory'])->name('settings.investment-category.store');
-    Route::delete('settings/investment-category/{investmentCategory}', [SettingsController::class, 'destroyInvestmentCategory'])->name('settings.investment-category.destroy');
-    Route::post('settings/bank-master', [SettingsController::class, 'storeBankMaster'])->name('settings.bank-master.store');
-    Route::delete('settings/bank-master/{bankMaster}', [SettingsController::class, 'destroyBankMaster'])->name('settings.bank-master.destroy');
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// Retired: the first "Smart Paisa" API (/api/auth/*, /api/income, /api/bank, …)
+// Every one of its paths, any method, answers 410 Gone with
+// {"message": "…Please update the app.", "code": "api_retired"} — no sign-in
+// needed, rate-limited. The app only calls /api/v1. App\Http\Controllers\RetiredController::api.
+// ─────────────────────────────────────────────────────────────────────────────
+Route::any('{retired}/{rest?}', [\App\Http\Controllers\RetiredController::class, 'api'])
+    ->where('retired', 'auth|dashboard|income|expense|bank|credit-card|loan|investment|commission|cashback|bad-debt|contact|reminder|report|settings')
+    ->where('rest', '.*')
+    ->middleware('throttle:60,1');
+// ── end Retired API ──
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API v1 — Expo Mobile App
@@ -93,7 +43,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/google', [V1SocialAuth::class, 'google'])->middleware('throttle:10,1');
     Route::post('auth/apple',  [V1SocialAuth::class, 'apple'])->middleware('throttle:10,1');
     Route::post('forgot-password', [V1Password::class, 'forgotPassword'])->middleware('throttle:5,1');
-    Route::post('reset-password',  [V1Password::class, 'resetPassword']);
+    Route::post('reset-password',  [V1Password::class, 'resetPassword'])->middleware('throttle:5,1'); // Security: guessing reset codes
     Route::get('currencies', [V1Settings::class, 'currencies']);
 
     // Protected. `email.verified` lets an unverified account reach only what
@@ -110,7 +60,7 @@ Route::prefix('v1')->group(function () {
         Route::post('me/onboarded',  [V1Auth::class, 'markOnboarded']);
         Route::put('me/pin',         [V1Auth::class, 'setPin']);
         Route::delete('me/pin',      [V1Auth::class, 'removePin']);
-        Route::post('me/avatar',     [V1Auth::class, 'uploadAvatar']);
+        Route::post('me/avatar',     [V1Auth::class, 'uploadAvatar'])->middleware('throttle:10,1'); // Security: upload flood
         Route::delete('me/avatar',   [V1Auth::class, 'removeAvatar']);
         Route::delete('me',          [V1Auth::class, 'deleteAccount']);
 
@@ -184,7 +134,7 @@ Route::prefix('v1')->group(function () {
 
         // Meta & Import
         Route::get('meta',    [V1Meta::class, 'index']);
-        Route::post('import', [V1Import::class, 'store']);
+        Route::post('import', [V1Import::class, 'store'])->middleware('throttle:5,1'); // Security: heavy request
 
         // ── Groups: shared expenses, Splitwise-style (App\Support\Groups) ──
         // A group the user is not in is a 404.
@@ -196,6 +146,7 @@ Route::prefix('v1')->group(function () {
         Route::post('groups/{group}/members',          [\App\Http\Controllers\Api\V1\GroupController::class, 'addMember'])->whereNumber('group')->middleware('throttle:30,1');
         Route::delete('groups/{group}/members/{user}', [\App\Http\Controllers\Api\V1\GroupController::class, 'removeMember'])->whereNumber(['group', 'user']);
         Route::post('groups/{group}/settlements',      [\App\Http\Controllers\Api\V1\GroupController::class, 'settle'])->whereNumber('group');
+        Route::delete('groups/{group}/settlements/{settlement}', [\App\Http\Controllers\Api\V1\GroupController::class, 'destroySettlement'])->whereNumber(['group', 'settlement']); // undo a payment
         Route::get('groups/{group}/expenses',                [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'index'])->whereNumber('group');
         Route::post('groups/{group}/expenses',               [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'store'])->whereNumber('group');
         Route::put('groups/{group}/expenses/{expense}',      [\App\Http\Controllers\Api\V1\GroupExpenseController::class, 'update'])->whereNumber(['group', 'expense']);
@@ -208,7 +159,7 @@ Route::prefix('v1')->group(function () {
         Route::get('export/report.pdf',       [\App\Http\Controllers\Api\V1\ExportController::class, 'report']);
         // An expense's receipt photo: private, the owner's only (App\Support\Receipts)
         Route::get('expenses/{expense}/receipt',    [\App\Http\Controllers\Api\V1\ReceiptController::class, 'show'])->whereNumber('expense');
-        Route::post('expenses/{expense}/receipt',   [\App\Http\Controllers\Api\V1\ReceiptController::class, 'store'])->whereNumber('expense');
+        Route::post('expenses/{expense}/receipt',   [\App\Http\Controllers\Api\V1\ReceiptController::class, 'store'])->whereNumber('expense')->middleware('throttle:20,1'); // Security: upload flood
         Route::delete('expenses/{expense}/receipt', [\App\Http\Controllers\Api\V1\ReceiptController::class, 'destroy'])->whereNumber('expense');
         // Savings goals and the money in them (App\Support\Goals)
         Route::get('goals',                       [\App\Http\Controllers\Api\V1\GoalController::class, 'index']);
@@ -218,6 +169,26 @@ Route::prefix('v1')->group(function () {
         Route::delete('goals/{goal}',             [\App\Http\Controllers\Api\V1\GoalController::class, 'destroy'])->whereNumber('goal');
         Route::get('goals/{goal}/contributions',  [\App\Http\Controllers\Api\V1\GoalController::class, 'contributions'])->whereNumber('goal');
         Route::post('goals/{goal}/contributions', [\App\Http\Controllers\Api\V1\GoalController::class, 'contribute'])->whereNumber('goal');
+        Route::delete('goals/{goal}/contributions/{contribution}', [\App\Http\Controllers\Api\V1\GoalController::class, 'destroyContribution'])->whereNumber(['goal', 'contribution']);
         // ── end Exports, receipts, savings goals ──
     });
 });
+
+// ── App control, suggested rates, Help & support ──
+// (App\Support\AppControl, Currencies, SupportTickets; App\Http\Middleware\AppGate answers 503/426 first)
+Route::prefix('v1')->group(function () {
+    // Public. Answered even in maintenance mode, and to an outdated app.
+    Route::get('app-status', [\App\Http\Controllers\Api\V1\AppStatusController::class, 'show']);
+    // Admin › Currencies' suggested rates: a starting value for the rate field.
+    Route::get('currencies/rates', [\App\Http\Controllers\Api\V1\SettingsController::class, 'currencyRates']);
+
+    Route::middleware(['auth:sanctum', 'email.verified'])->group(function () {
+        Route::get('support', [\App\Http\Controllers\Api\V1\SupportController::class, 'index']);
+        // 5 new requests an hour, app and website together (the same "support" counter as POST /support on the website).
+        Route::post('support', [\App\Http\Controllers\Api\V1\SupportController::class, 'store'])->middleware('throttle:5,60,support');
+        Route::get('support/{ticket}', [\App\Http\Controllers\Api\V1\SupportController::class, 'show'])->whereNumber('ticket');
+        Route::post('support/{ticket}/messages', [\App\Http\Controllers\Api\V1\SupportController::class, 'message'])->whereNumber('ticket')->middleware('throttle:30,60,support-messages');
+        Route::get('support/{ticket}/messages/{message}/screenshot', [\App\Http\Controllers\Api\V1\SupportController::class, 'screenshot'])->whereNumber(['ticket', 'message']);
+    });
+});
+// ── end App control, suggested rates, Help & support ──

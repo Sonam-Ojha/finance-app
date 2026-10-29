@@ -157,4 +157,18 @@ class GroupController extends Controller
         return redirect()->route('groups.show', $group)->with('success',
             "Payment recorded · {$names[$settlement->from_user_id]} paid {$names[$settlement->to_user_id]} " . $money->format($amount));
     }
+
+    /** "Undo" next to a recent payment: any member may remove one recorded by mistake. */
+    public function destroySettlement(Request $request, string $id, string $settlementId)
+    {
+        $user       = $request->user();
+        $group      = Groups::find($user, $id);
+        $settlement = Groups::findSettlement($group, $settlementId);
+        $names      = Groups::names($group, [$settlement->from_user_id, $settlement->to_user_id]);
+        Groups::deleteSettlement($group, $settlement);
+
+        return redirect()->route('groups.show', $group)->with('success',
+            "Payment removed · {$names[$settlement->from_user_id]} paid {$names[$settlement->to_user_id]} "
+            . DisplayCurrency::for($user)->format($settlement->amount_minor));
+    }
 }

@@ -1,6 +1,7 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import qrcode from 'qrcode-generator';
 
 /* ── Money ─────────────────────────────────────────────────────────────
  * The browser's half of App\Support\DisplayCurrency (and the app's
@@ -258,6 +259,17 @@ window.receiptToDataUri = (file) => new Promise((resolve, reject) => {
     image.onerror = reject;
     image.src = URL.createObjectURL(file);
 });
+
+/* ── QR code ───────────────────────────────────────────────────────────
+ * An SVG that fills its box, for Admin › Settings › Two-factor
+ * authentication's otpauth:// address. Drawn here so the secret never
+ * leaves the page for a QR service. */
+window.qrSvg = (text) => {
+    const qr = qrcode(0, 'M');
+    qr.addData(text);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+};
 
 window.Alpine = Alpine;
 

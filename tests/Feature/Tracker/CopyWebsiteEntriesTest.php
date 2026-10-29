@@ -4,6 +4,7 @@ namespace Tests\Feature\Tracker;
 
 use App\Models\AppExpense;
 use App\Models\AppIncome;
+use App\Models\Category;
 use Illuminate\Support\Facades\DB;
 
 /** The one-time copy of the older website's expenses and incomes into the app's tables. */
@@ -34,5 +35,63 @@ class CopyWebsiteEntriesTest extends TrackerTestCase
 
         // The originals stay.
         $this->assertSame(2, DB::table('expenses')->count());
+    }
+
+    private function migration(): object
+    {
+        return require database_path('migrations/2026_10_28_000001_copy_website_entries_into_app_tables.php');
+    }
+
+    private function oldExpense(int $categoryId, string $amount, ?string $description, string $date = '2026-09-14'): void
+    {
+        DB::table('expenses')->insert(['user_id' => $this->user->id, 'expense_category_id' => $categoryId, 'date' => $date, 'amount' => $amount,
+            'payment_mode' => 'Cash', 'description' => $description, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    public function test_long_category_names_are_cut_to_40_characters_and_shared_not_duplicated(): void
+    {
+        $uid  = $this->user->id;
+        $long = 'Household repairs, plumbing and electricals'; // 43 characters
+        $a = DB::table('expense_categories')->insertGetId(['user_id' => $uid, 'name' => $long, 'created_at' => now(), 'updated_at' => now()]);
+        // A different old name that is the same once cut to 40 characters.
+        $b = DB::table('expense_categories')->insertGetId(['user_id' => $uid, 'name' => mb_substr($long, 0, 40) . ' (old)', 'created_at' => now(), 'updated_at' => now()]);
+        $this->oldExpense($a, '500.00', 'Tap');
+        $this->oldExpense($a, '700.00', 'Fan');
+        $this->oldExpense($b, '900.00', 'Wiring');
+
+        $this->migration()->up();
+
+        $cut = mb_substr($long, 0, 40);
+        $this->assertSame(1, Category::where('user_id', $uid)->where('name', $cut)->count());
+        $this->assertSame(3, AppExpense::where('category_id', $this->categoryNamed($cut)->id)->count());
+    }
+
+    public function test_running_it_again_copies_nothing_twice(): void
+    {
+        $uid = $this->user->id;
+        $tea = DB::table('expense_categories')->insertGetId(['user_id' => $uid, 'name' => 'Tea stall', 'created_at' => now(), 'updated_at' => now()]);
+        // Two old entries that are exact twins: both are real, both are copied.
+        $this->oldExpense($tea, '20.00', 'Chai');
+        $this->oldExpense($tea, '20.00', 'Chai');
+        $this->oldExpense($tea, '35.00', null);
+        DB::table('incomes')->insert(['user_id' => $uid, 'type' => 'business', 'date' => '2026-09-05', 'amount' => '1200.00', 'payment_mode' => 'UPI', 'note' => null, 'created_at' => now(), 'updated_at' => now()]);
+
+        $migration = $this->migration();
+        $migration->up();
+        $this->assertSame([3, 1, 1], [AppExpense::count(), AppIncome::count(), Category::where('user_id', $uid)->where('name', 'Tea stall')->count()]);
+
+        $migration->up();
+        $this->assertSame([3, 1, 1], [AppExpense::count(), AppIncome::count(), Category::where('user_id', $uid)->where('name', 'Tea stall')->count()]);
+        $this->assertSame(2, AppExpense::where('note', 'Chai')->count());
+
+        // Something new in the old tables since: only that is copied.
+        $this->oldExpense($tea, '20.00', 'Chai');
+        $migration->up();
+        $this->assertSame([4, 3], [AppExpense::count(), AppExpense::where('note', 'Chai')->count()]);
+    }
+
+    private function categoryNamed(string $name): Category
+    {
+        return Category::where('user_id', $this->user->id)->where('name', $name)->firstOrFail();
     }
 }

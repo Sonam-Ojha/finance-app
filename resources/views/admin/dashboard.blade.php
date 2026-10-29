@@ -30,6 +30,15 @@
         <p><span class="font-semibold text-brand-navy">Aggregate view only.</span> Admins see counts and trends, never a user's amounts, notes or categories.</p>
     </div>
 
+    {{-- Security: a nudge, never a requirement --}}
+    @unless(auth()->user()->hasTwoFactor())
+        <div class="adm-strip items-center">
+            <x-icon name="lock" class="h-5 w-5 flex-shrink-0 text-brand-navy" />
+            <p class="flex-1"><span class="font-semibold text-brand-navy">Protect your admin account.</span> Turn on two-factor authentication, so signing in also needs a code from your phone.</p>
+            <a href="{{ route('admin.settings') }}#two-factor" class="adm-link whitespace-nowrap">Set it up</a>
+        </div>
+    @endunless
+
     {{-- 4.3 KPIs --}}
     <div class="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
         @foreach($kpis as $kpi)
@@ -194,16 +203,23 @@
         <section class="adm-card flex flex-[1_1_300px] flex-col gap-3">
             <h2 class="adm-h2">Quick actions</h2>
             <a href="{{ route('admin.notifications.index') }}" class="adm-btn-primary w-full"><x-icon name="megaphone" class="h-5 w-5" /> Send announcement</a>
-            <button type="button" class="adm-btn-outline w-full" aria-disabled="true" title="Coming soon" disabled>Add default category</button>
-            <button type="button" class="adm-btn-outline w-full" aria-disabled="true" title="Coming soon" disabled>Set minimum app version</button>
+            <a href="{{ route('admin.default-categories.index') }}#form" class="adm-btn-outline w-full">Add default category</a>
+            <a href="{{ route('admin.app-control') }}" class="adm-btn-outline w-full">Set minimum app version</a>
+            @php $maintenanceOn = \App\Support\AppControl::maintenance(); @endphp
             <div class="mt-1 flex items-center justify-between gap-3 border-t border-surface-page pt-4">
                 <div>
                     <p id="maintenance-label" class="text-sm font-semibold">Maintenance mode</p>
-                    <p class="adm-caption">Off · app is open for everyone</p>
+                    <p class="adm-caption">{{ $maintenanceOn ? 'On · only admins get in' : 'Off · app is open for everyone' }}</p>
                 </div>
-                {{-- TODO: wire to maintenance mode once it is safe to. --}}
-                <button type="button" role="switch" aria-checked="false" aria-labelledby="maintenance-label" aria-disabled="true" disabled
-                        title="Coming soon" class="adm-switch cursor-not-allowed opacity-60"><span></span></button>
+                {{-- The same switch as Admin › App control. --}}
+                <form method="POST" action="{{ route('admin.app-control.maintenance') }}"
+                      data-confirm-title="{{ $maintenanceOn ? 'Turn maintenance mode off?' : 'Turn maintenance mode on?' }}"
+                      data-confirm-message="{{ $maintenanceOn ? 'The app and the website open for everyone again.' : 'Everyone but admins is shut out until you turn it off. Set the message people see in App control.' }}"
+                      data-confirm-button="{{ $maintenanceOn ? 'Turn off' : 'Turn on' }}">
+                    @csrf @method('PUT')
+                    <input type="hidden" name="enabled" value="{{ $maintenanceOn ? 0 : 1 }}">
+                    <button type="submit" role="switch" aria-checked="{{ $maintenanceOn ? 'true' : 'false' }}" aria-labelledby="maintenance-label" class="adm-switch"><span></span></button>
+                </form>
             </div>
         </section>
 

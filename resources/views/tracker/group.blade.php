@@ -132,10 +132,20 @@
                     @foreach($settlements as $settlement)
                         <div class="flex items-center justify-between gap-3 py-2 text-sm">
                             <p class="min-w-0 truncate strong">{{ $who($settlement->from_user_id) }} paid {{ $whoIn($settlement->to_user_id) }}</p>
-                            <p class="flex-shrink-0 text-right">
-                                <span class="font-semibold strong">{{ $money->format($settlement->amount_minor) }}</span>
-                                <span class="text-xs muted">· {{ \App\Support\Labels::dayHeading($settlement->settled_on) }}</span>
-                            </p>
+                            <div class="flex flex-shrink-0 items-center gap-2 text-right">
+                                <p>
+                                    <span class="font-semibold strong">{{ $money->format($settlement->amount_minor) }}</span>
+                                    <span class="text-xs muted">· {{ \App\Support\Labels::dayHeading($settlement->settled_on) }}</span>
+                                </p>
+                                {{-- Undo a payment recorded by mistake (any member) --}}
+                                <form method="POST" action="{{ route('groups.settlements.destroy', [$group, $settlement]) }}"
+                                      data-confirm-title="Undo this payment?"
+                                      data-confirm-message="{{ $who($settlement->from_user_id) }} paid {{ $whoIn($settlement->to_user_id) }} {{ $money->format($settlement->amount_minor) }} is removed for everyone, and the balances go back to what they were without it."
+                                      data-confirm-button="Undo payment">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="link text-xs" aria-label="Undo the payment of {{ $money->format($settlement->amount_minor) }}">Undo</button>
+                                </form>
+                            </div>
                         </div>
                     @endforeach
                 </div>

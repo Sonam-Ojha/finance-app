@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Birthday;
 use App\Support\DefaultCategories;
 use App\Support\EmailVerification;
 use App\Support\RealEmail;
@@ -23,7 +24,7 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        return view('auth.register', Birthday::pickerRange());
     }
 
     /**
@@ -37,12 +38,18 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['bail', 'required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class, RealEmail::rule()],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // The profile's rule: at least 1 and at most 120 years old.
+            'birthday' => ['bail', 'required', ...Birthday::rules()],
+        ], [
+            'birthday.required'    => 'Enter your date of birth.',
+            'birthday.date_format' => Birthday::MESSAGE,
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'birthday' => $request->birthday,
         ]);
         // The same starting categories as an account made in the app.
         DefaultCategories::seed($user);

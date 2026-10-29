@@ -129,6 +129,26 @@ class GroupsPagesTest extends TrackerTestCase
         $this->get('/groups')->assertSee('Settled up');
     }
 
+    public function test_a_recent_payment_can_be_undone(): void
+    {
+        $group = $this->trio();
+        $this->expenseForm($group, ['amount' => '900', 'split' => 'equal', 'participants' => [$this->user->id, $this->rishi->id, $this->meera->id]]);
+        $settlement = Groups::settle($group, $this->rishi, $this->rishi->id, $this->user->id, 30000, '2026-10-21');
+
+        $this->get("/groups/{$group->id}")->assertOk()
+            ->assertSee(route('groups.settlements.destroy', [$group, $settlement]), false)
+            ->assertSee('Undo this payment?')
+            ->assertSee('Undo');
+
+        $this->delete("/groups/{$group->id}/settlements/{$settlement->id}")
+            ->assertRedirect(route('groups.show', $group))
+            ->assertSessionHas('success', 'Payment removed · Rishi Kapoor paid Asha Rao ₹300.00');
+        $this->assertDatabaseMissing('group_settlements', ['id' => $settlement->id]);
+        $this->get("/groups/{$group->id}")->assertSeeInOrder(['Rishi Kapoor', 'pays', 'you', '₹300.00', 'Mark paid'])->assertDontSee('Recent payments');
+
+        $this->delete("/groups/{$group->id}/settlements/{$settlement->id}")->assertNotFound();
+    }
+
     public function test_a_member_with_a_balance_cannot_be_removed_or_leave(): void
     {
         $group = $this->trio();

@@ -13,9 +13,9 @@ class SettingsController extends Controller
     public function updateCurrency(Request $request)
     {
         $user = $request->user();
-        // A built-in code, or one the user added through /me/currencies.
+        // One on offer (Admin › Currencies), or one the user added through /me/currencies.
         $allowed = array_merge(
-            array_keys(Currencies::BUILT_IN),
+            array_keys(Currencies::all()),
             $user->userCurrencies()->pluck('code')->all(),
         );
         $request->validate(['currency' => ['required', Rule::in($allowed)]]);
@@ -56,5 +56,21 @@ class SettingsController extends Controller
     public function currencies()
     {
         return response()->json(['data' => Currencies::list()]);
+    }
+
+    /**
+     * GET /currencies/rates — the rates Admin › Currencies suggests (rupees
+     * for one unit), for the currencies on offer that have one. A starting
+     * value for the rate field; the user's own rate always wins.
+     */
+    public function currencyRates()
+    {
+        $rates = collect(Currencies::all())->keys()
+            ->reject(fn ($code) => $code === Currencies::BASE)
+            ->map(fn ($code) => ['code' => $code, 'rate' => Currencies::defaultRate($code)])
+            ->filter(fn ($row) => $row['rate'] !== null)
+            ->values();
+
+        return response()->json(['data' => $rates]);
     }
 }

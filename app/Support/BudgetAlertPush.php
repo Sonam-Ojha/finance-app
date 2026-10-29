@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
+use App\Jobs\CheckBudgetAlerts;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
-
-use function Illuminate\Support\defer;
+use Throwable;
 
 /**
  * Budget alerts as pushes, the moment an expense crosses a line: 80% of a
@@ -18,7 +18,7 @@ class BudgetAlertPush
 {
     public const LEVELS = [100, 80];
 
-    /** After an expense is saved: checks once the page has answered. */
+    /** After an expense is saved: checks from the queue (App\Jobs\CheckBudgetAlerts), so the save never waits on Firebase. */
     public static function afterExpense(User $user, CarbonInterface $spentAt): void
     {
         // Off only when turned off: a model not read back from the database has no value yet, and the default is on.
@@ -26,7 +26,11 @@ class BudgetAlertPush
         $month = $spentAt->format('Y-m');
         if ($month !== Labels::now()->format('Y-m')) return;
 
-        defer(fn () => self::check($user, $month));
+        try {
+            CheckBudgetAlerts::dispatch($user->id, $month);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /** @return list<string> the titles pushed */

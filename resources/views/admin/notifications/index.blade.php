@@ -301,6 +301,8 @@
                             @if($item->via_push)
                                 @if($item->status === \App\Models\AdminNotification::STATUS_NOT_CONFIGURED)
                                     <span class="adm-badge-medium">Push: inbox only</span>
+                                @elseif($item->pushesPending())
+                                    <span class="adm-badge-medium">Push sending…</span>
                                 @else
                                     <span class="{{ $item->failed > 0 ? 'adm-badge-high' : 'adm-badge-low' }}">Push {{ $item->delivered }}/{{ $item->devices }} delivered</span>
                                 @endif
