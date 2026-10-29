@@ -26,14 +26,7 @@
         </div>
 
         <button type="submit" class="btn-primary">Verify</button>
-
-        <div class="divider">
-            <div class="divider-line"></div>
-            <span class="divider-text">Not you?</span>
-            <div class="divider-line"></div>
-        </div>
-
-        <a href="{{ route('login') }}" class="btn-secondary">Back to sign in</a>
     </form>
 
+    <x-slot name="footer">Not you? <a href="{{ route('login') }}">Back to sign in</a></x-slot>
 </x-guest-layout>

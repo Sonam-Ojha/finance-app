@@ -1,35 +1,21 @@
 {{--
-    "Continue with Google" (Google Identity Services). Google gives the page an
-    ID token; it is posted, with the CSRF token, to auth.google
-    (App\Http\Controllers\Auth\GoogleSignInController). Hidden when no web
-    client id is configured (services.google.web_client_id).
+    "Continue with Google" (Google Identity Services), at the top of the card
+    with "or" under it. Google gives the page an ID token; it is posted, with
+    the CSRF token, to auth.google (App\Http\Controllers\Auth\GoogleSignInController).
+    The button is drawn as wide as the card. Hidden when no web client id is
+    configured (services.google.web_client_id).
     $context: "signin" or "signup".
 --}}
 @php $googleClientId = config('services.google.web_client_id'); @endphp
 @if($googleClientId)
+    <div id="google-button" class="google-button" data-text="continue_with"></div>
+    @error('google')<div class="field-error" role="alert" style="text-align:center">{{ $message }}</div>@enderror
+
     <div class="divider">
         <div class="divider-line"></div>
-        <span class="divider-text">OR</span>
+        <span class="divider-text">or</span>
         <div class="divider-line"></div>
     </div>
-
-    <div id="g_id_onload"
-         data-client_id="{{ $googleClientId }}"
-         data-context="{{ $context ?? 'signin' }}"
-         data-ux_mode="popup"
-         data-callback="continueWithGoogle"
-         data-auto_prompt="false"
-         data-itp_support="true"></div>
-    <div style="display:flex; justify-content:center; min-height:44px">
-        <div class="g_id_signin"
-             data-type="standard"
-             data-shape="rectangular"
-             data-theme="outline"
-             data-text="continue_with"
-             data-size="large"
-             data-logo_alignment="left"></div>
-    </div>
-    @error('google')<div class="field-error" role="alert" style="text-align:center; margin-top:8px">{{ $message }}</div>@enderror
 
     <script>
         // Called by Google with the signed-in account's ID token.
@@ -47,6 +33,22 @@
             document.body.appendChild(form);
             form.submit();
         }
+
+        window.onGoogleLibraryLoad = function () {
+            google.accounts.id.initialize({
+                client_id: @json($googleClientId),
+                callback: continueWithGoogle,
+                context: @json($context ?? 'signin'),
+                ux_mode: 'popup',
+                itp_support: true,
+            });
+            var holder = document.getElementById('google-button');
+            google.accounts.id.renderButton(holder, {
+                type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular',
+                text: 'continue_with', logo_alignment: 'center',
+                width: Math.max(200, Math.min(400, holder.clientWidth)), // Google's limits
+            });
+        };
     </script>
     <script src="https://accounts.google.com/gsi/client" async></script>
 @endif

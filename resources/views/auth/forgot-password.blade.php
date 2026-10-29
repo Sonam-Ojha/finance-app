@@ -19,11 +19,5 @@
         <button type="submit" class="btn-primary">Email me a reset link</button>
     </form>
 
-    <div class="divider">
-        <div class="divider-line"></div>
-        <span class="divider-text">Remembered it?</span>
-        <div class="divider-line"></div>
-    </div>
-
-    <a href="{{ route('login') }}" class="btn-secondary">Back to sign in</a>
+    <x-slot name="footer">Remembered it? <a href="{{ route('login') }}">Back to sign in</a></x-slot>
 </x-guest-layout>

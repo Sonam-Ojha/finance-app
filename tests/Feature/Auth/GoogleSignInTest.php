@@ -33,15 +33,15 @@ class GoogleSignInTest extends TestCase
     {
         foreach (['/login', '/register'] as $page) {
             $this->get($page)->assertOk()
-                ->assertSee('g_id_signin', false)
-                ->assertSee('data-text="continue_with"', false)
+                ->assertSee('id="google-button"', false)
+                ->assertSee("text: 'continue_with'", false)
                 ->assertSee(self::WEB_CLIENT)
                 ->assertSee('https://accounts.google.com/gsi/client', false)
                 ->assertSee(json_encode(route('auth.google')), false);
         }
 
         config(['services.google.web_client_id' => null]);
-        $this->get('/login')->assertOk()->assertDontSee('g_id_signin', false);
+        $this->get('/login')->assertOk()->assertDontSee('id="google-button"', false);
     }
 
     public function test_a_new_google_user_gets_a_verified_account_and_gives_a_birthday_first(): void
