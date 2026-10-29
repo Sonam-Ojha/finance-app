@@ -2,9 +2,9 @@
     <x-slot name="title">Account information</x-slot>
 
     {{-- The photo beside the details on wide screens --}}
-    <div class="grid items-start gap-4 lg:grid-cols-3">
+    <div class="grid items-stretch gap-4 lg:grid-cols-3">
         {{-- Photo: saved as soon as it is picked --}}
-        <div class="card flex items-center gap-4 lg:flex-col lg:text-center" x-data="{ busy: false, failed: false }">
+        <div class="card flex items-center gap-4 lg:flex-col lg:justify-center lg:text-center" x-data="{ busy: false, failed: false }">
             @if($avatarUrl)
                 <img src="{{ $avatarUrl }}" alt="Your photo" class="h-20 w-20 rounded-full object-cover lg:h-32 lg:w-32">
             @else
