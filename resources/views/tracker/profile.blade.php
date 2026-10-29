@@ -1,15 +1,16 @@
 <x-app-layout>
     <x-slot name="title">Account information</x-slot>
 
-    <div class="max-w-2xl space-y-4">
+    {{-- The photo beside the details on wide screens --}}
+    <div class="grid items-start gap-4 lg:grid-cols-3">
         {{-- Photo: saved as soon as it is picked --}}
-        <div class="card flex items-center gap-4" x-data="{ busy: false, failed: false }">
+        <div class="card flex items-center gap-4 lg:flex-col lg:text-center" x-data="{ busy: false, failed: false }">
             @if($avatarUrl)
-                <img src="{{ $avatarUrl }}" alt="Your photo" class="w-20 h-20 rounded-full object-cover">
+                <img src="{{ $avatarUrl }}" alt="Your photo" class="h-20 w-20 rounded-full object-cover lg:h-32 lg:w-32">
             @else
-                <span class="w-20 h-20 rounded-full bg-surface-page dark:bg-night-line flex items-center justify-center muted"><x-icon name="user" class="w-9 h-9" /></span>
+                <span class="flex h-20 w-20 items-center justify-center rounded-full bg-surface-page muted lg:h-32 lg:w-32 dark:bg-night-line"><x-icon name="user" class="h-9 w-9 lg:h-14 lg:w-14" /></span>
             @endif
-            <div class="space-y-2">
+            <div class="space-y-2 lg:flex lg:flex-col lg:items-center">
                 <form method="POST" action="{{ route('profile.photo') }}" x-ref="photoForm">
                     @csrf
                     <input type="hidden" name="avatar" x-ref="avatar">
@@ -30,9 +31,10 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('profile.update') }}" class="card space-y-5">
+        <form method="POST" action="{{ route('profile.update') }}" class="card space-y-5 lg:col-span-2">
             @csrf @method('PATCH')
 
+            <div class="grid gap-5 sm:grid-cols-2">
             <div>
                 <label for="name" class="field-label">Name</label>
                 <input id="name" name="name" type="text" maxlength="40" value="{{ old('name', $user->name) }}" placeholder="Your name" class="input">
@@ -44,6 +46,7 @@
                 <input id="birthday" name="birthday" type="date" min="{{ $oldest }}" max="{{ $youngest }}"
                        value="{{ old('birthday', $user->birthday?->toDateString()) }}" class="input">
                 @error('birthday')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
             </div>
 
             <div>
@@ -62,7 +65,7 @@
         </form>
 
         {{-- Delete account --}}
-        <div class="text-center" x-data="{ open: @js($errors->userDeletion->isNotEmpty()) }">
+        <div class="text-center lg:col-span-3 lg:text-right" x-data="{ open: @js($errors->userDeletion->isNotEmpty()) }">
             <button type="button" @click="open = true" class="btn-danger-ghost">Delete account</button>
 
             <div x-show="open" x-cloak x-transition.opacity class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" @click.self="open = false" @keydown.escape.window="open = false">

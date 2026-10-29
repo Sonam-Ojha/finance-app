@@ -2,7 +2,7 @@
     <x-slot name="title">Appearance</x-slot>
     <x-slot name="subtitle">Choose how the app looks.</x-slot>
 
-    <div class="max-w-2xl space-y-4">
+    <div class="grid items-start gap-4 lg:grid-cols-2">
         <section class="card space-y-4">
             <div>
                 <h2 class="card-title">Theme</h2>

@@ -5,7 +5,8 @@
         $iconBox = 'icon-tile';
     @endphp
 
-    <div class="max-w-2xl space-y-5">
+    {{-- Two columns of sections on wide screens --}}
+    <div class="grid items-start gap-6 lg:grid-cols-2">
         <section>
             <h2 class="section-label mb-2 px-1">Preferences</h2>
             <div class="card !p-0 divide-soft overflow-hidden">

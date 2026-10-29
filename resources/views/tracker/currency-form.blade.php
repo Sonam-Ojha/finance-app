@@ -6,7 +6,7 @@
         $selected = $currency && auth()->user()->currency === $currency->code;
     @endphp
 
-    <div class="max-w-2xl space-y-4"
+    <div class="space-y-4"
          x-data="{
              code: @js(old('code', $currency?->code ?? '')),
              symbol: @js(old('symbol', $currency?->symbol ?? '')),
@@ -23,7 +23,8 @@
             @csrf @method('PUT')
             @if($select)<input type="hidden" name="select" value="1">@endif
 
-
+            {{-- Two to a row on wide screens --}}
+            <div class="grid items-start gap-5 lg:grid-cols-2">
             @if($custom)
                 <div>
                     <label for="label" class="field-label">Name</label>
@@ -61,6 +62,7 @@
                     <span x-show="! preview()">Amounts stay in rupees and are converted with this when <span x-text="code || 'it'"></span> is picked.</span>
                     It does not update by itself — change it when the rate moves.
                 </p>
+            </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">

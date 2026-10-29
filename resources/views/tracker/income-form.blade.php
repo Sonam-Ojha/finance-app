@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">{{ $income ? 'Edit income' : 'New income' }}</x-slot>
 
-    <div class="max-w-2xl space-y-4">
+    <div class="space-y-4">
         @unless($income)
             <div class="seg">
                 <a href="{{ route('expenses.create') }}" class="seg-item">Expenses</a>
@@ -14,7 +14,8 @@
             @if($income) @method('PUT') @endif
             <input type="hidden" name="back" value="{{ old('back', $back) }}">
 
-
+            {{-- Two columns on wide screens: amount | date and note, then how it came in | source --}}
+            <div class="grid gap-x-10 gap-y-5 lg:grid-cols-2">
             @include('tracker.partials.entry-fields', [
                 'amountLabel'  => 'Amount received',
                 'amountValue'  => $income ? $money->toInput($income->amount_minor) : '',
@@ -35,6 +36,7 @@
                 </div>
                 <input id="source" name="source" type="text" maxlength="40" x-model="source" placeholder="Or type a source" class="input">
                 @error('source')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">

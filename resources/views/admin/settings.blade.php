@@ -2,13 +2,14 @@
     <x-slot name="title">Settings</x-slot>
     <x-slot name="subtitle">How the admin panel looks to you.</x-slot>
 
-    <section class="adm-card max-w-2xl">
+    <div class="grid items-start gap-4 lg:grid-cols-2">
+    <section class="adm-card">
         <h2 class="adm-h2">Sidebar colour</h2>
         <p class="adm-caption mt-1">One tap saves it. The sidebar takes this colour here and in My account.</p>
         <div class="mt-4">@include('partials.sidebar-colors')</div>
     </section>
 
-    <section class="adm-card max-w-2xl">
+    <section class="adm-card">
         <h2 class="adm-h2">Your account</h2>
         <p class="adm-caption mt-1">These live in My account, with your own expenses.</p>
         <div class="mt-3 divide-soft">
@@ -25,4 +26,5 @@
             @endforeach
         </div>
     </section>
+    </div>
 </x-admin-layout>

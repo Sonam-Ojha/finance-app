@@ -4,7 +4,7 @@
         $selected = (int) old('category_id', $expense?->category_id ?? ($categories->firstWhere('id', $picked)?->id ?? $categories->first()?->id));
     @endphp
 
-    <div class="max-w-2xl space-y-4">
+    <div class="space-y-4">
         @unless($expense)
             <div class="seg">
                 <span class="seg-item seg-on">Expenses</span>
@@ -17,7 +17,8 @@
             @if($expense) @method('PUT') @endif
             <input type="hidden" name="back" value="{{ old('back', $back) }}">
 
-
+            {{-- Two columns on wide screens: amount | date and note, then how it was paid | category --}}
+            <div class="grid gap-x-10 gap-y-5 lg:grid-cols-2">
             @include('tracker.partials.entry-fields', [
                 'amountValue'  => $expense ? $money->toInput($expense->amount_minor) : '',
                 'dateField'    => 'spent_at',
@@ -45,6 +46,7 @@
                 @endif
                 @error('category_id')<p class="field-error">{{ $message }}</p>@enderror
             </fieldset>
+            </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">
                 <a href="{{ old('back', $back) }}" class="btn-secondary">Cancel</a>

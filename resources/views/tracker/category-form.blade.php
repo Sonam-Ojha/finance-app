@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">{{ $category ? 'Edit category' : 'New category' }}</x-slot>
 
-    <div class="max-w-2xl space-y-4"
+    <div class="space-y-4"
          x-data="{
              name: @js(old('name', $category?->name ?? '')),
              icon: @js(old('icon', $category?->icon ?? $icons[0])),
@@ -14,6 +14,9 @@
             <input type="hidden" name="icon" :value="icon">
             <input type="hidden" name="color" :value="color">
 
+            {{-- Two columns on wide screens: what it is | how it looks --}}
+            <div class="grid gap-x-10 gap-y-5 lg:grid-cols-2">
+            <div class="space-y-5">
             {{-- Preview --}}
             <div class="flex flex-col items-center gap-2 py-2">
                 <span class="w-16 h-16 rounded-full flex items-center justify-center text-3xl" :style="`background-color: ${color}2e`" x-text="icon"></span>
@@ -36,7 +39,9 @@
                 </div>
                 @error('budget')<p class="field-error">{{ $message }}</p>@enderror
             </div>
+            </div>
 
+            <div class="space-y-5">
             <div>
                 <span class="field-label">Icon</span>
                 <div class="flex flex-wrap gap-1.5">
@@ -59,6 +64,8 @@
                     @endforeach
                 </div>
                 @error('color')<p class="field-error">{{ $message }}</p>@enderror
+            </div>
+            </div>
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-2">

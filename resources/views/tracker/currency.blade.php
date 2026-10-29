@@ -6,14 +6,14 @@
         <a href="{{ route('currency.create') }}" class="btn-primary"><x-icon name="plus" class="w-5 h-5" /> Add currency</a>
     </x-slot>
 
-    <div class="max-w-2xl space-y-4">
-
-        <div class="card !p-0 divide-soft overflow-hidden">
+    <div>
+        {{-- Two to a row on wide screens --}}
+        <div class="grid gap-4 lg:grid-cols-2">
             @foreach($currencies as $currency)
                 @php
                     $rate = $currency->rate ? rtrim(rtrim(number_format($currency->rate, 6, '.', ''), '0'), '.') : null;
                 @endphp
-                <div class="flex items-center gap-2 pr-2">
+                <div class="card !p-0 flex items-center gap-2 overflow-hidden pr-2 {{ $currency->code === $selected ? 'ring-2 ring-brand-navy dark:ring-brand-cyan' : '' }}">
                     <form method="POST" action="{{ route('currency.select') }}" class="flex-1 min-w-0">
                         @csrf @method('PUT')
                         <input type="hidden" name="currency" value="{{ $currency->code }}">
