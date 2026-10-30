@@ -135,6 +135,33 @@
             </form>
 
             <p class="adm-caption border-t border-surface-page pt-3 dark:border-night-line">Works for app 1.2.0 and newer. Older apps do not tell the server their version, so they are never stopped.</p>
+
+            {{-- ── Version distribution ── --}}
+            <div class="border-t border-surface-page pt-4 dark:border-night-line">
+                <p class="text-sm font-semibold">Who is on which version</p>
+                @if($versionStats['total'] === 0)
+                    <p class="adm-caption mt-2">No version data yet. Data appears once users open the app after updating to 1.2.0 or newer.</p>
+                @else
+                    <div class="mt-3 flex flex-col gap-2">
+                        @foreach($versionStats['rows'] as $row)
+                            <div class="flex items-center gap-3 text-sm">
+                                <span class="w-14 font-mono font-semibold text-ink dark:text-night-ink">{{ $row['version'] }}</span>
+                                <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-surface-page dark:bg-night-page">
+                                    <div class="absolute inset-y-0 left-0 rounded-full bg-brand-navy dark:bg-brand-cyan"
+                                         style="width: {{ max(2, $row['share']) }}%"></div>
+                                </div>
+                                <span class="w-20 text-right text-ink-muted">{{ number_format($row['count']) }} <span class="text-xs">({{ $row['share'] }}%)</span></span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="adm-caption mt-3">
+                        {{ number_format($versionStats['total']) }} {{ $versionStats['total'] === 1 ? 'user' : 'users' }} tracked.
+                        @if($versionStats['untracked'] > 0)
+                            {{ number_format($versionStats['untracked']) }} {{ $versionStats['untracked'] === 1 ? 'user has' : 'users have' }} not opened the app since tracking began.
+                        @endif
+                    </p>
+                @endif
+            </div>
         </section>
 
         {{-- ── Reminders and other messages the server sends on its own ── --}}

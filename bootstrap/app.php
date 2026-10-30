@@ -29,7 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RejectBlockedUsers::class,
             \App\Http\Middleware\RequireBirthday::class,
         ]);
-        $middleware->api(append: [\App\Http\Middleware\RejectBlockedUsers::class . ':sanctum']);
+        $middleware->api(append: [
+            \App\Http\Middleware\RejectBlockedUsers::class . ':sanctum',
+            \App\Http\Middleware\TrackAppVersion::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // A form left open longer than the session (phones keep tabs for days)

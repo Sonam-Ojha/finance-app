@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Support\AdminActivity;
 use App\Support\AppControl;
 use App\Support\AppSettings;
+use App\Support\Counts;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,7 +35,34 @@ class AppControlController extends Controller
                 AppControl::MONTHLY_SUMMARY   => AppControl::monthlySummary(),
                 AppControl::BIRTHDAY_WISHES   => AppControl::birthdayWishes(),
             ],
+            'versionStats'       => $this->versionStats(),
         ]);
+    }
+
+    /** How many users are on each app version, most recent first. */
+    private function versionStats(): array
+    {
+        $rows = DB::table('users')
+            ->whereNotNull('last_app_version')
+            ->selectRaw('last_app_version as version, COUNT(*) as c')
+            ->groupBy('last_app_version')
+            ->orderByDesc('c')
+            ->get();
+
+        $total = $rows->sum('c');
+        if ($total === 0) return ['rows' => [], 'total' => 0, 'untracked' => DB::table('users')->count()];
+
+        $allUsers = DB::table('users')->count();
+
+        return [
+            'rows'      => $rows->map(fn ($r) => [
+                'version' => $r->version,
+                'count'   => (int) $r->c,
+                'share'   => $total > 0 ? round($r->c / $total * 100) : 0,
+            ])->all(),
+            'total'     => (int) $total,
+            'untracked' => max(0, $allUsers - $total),
+        ];
     }
 
     /** What each automatic message is called in the activity log and the success message. */
